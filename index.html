@@ -79,6 +79,7 @@ p{margin:0;font-size:15px;line-height:1.6}
 .records{width:100%;font-size:13px;text-align:left;display:flex;flex-direction:column;gap:3px;font-variant-numeric:tabular-nums}
 .records .cap{font-size:12px;opacity:.75;margin-top:4px}
 .records .row{display:grid;grid-template-columns:18px 64px 1fr;gap:6px;border-bottom:1px dashed #c9bfae;padding-bottom:3px}
+.mode.snow[aria-checked="true"]{background:#e6f1ff}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -119,6 +120,7 @@ p{margin:0;font-size:15px;line-height:1.6}
   <p class="perk" id="perk"></p>
   <div class="modes" id="modes" role="radiogroup" aria-label="むずかしさ"></div>
   <p class="daily-line" id="dailyLine" hidden></p>
+  <div class="modes" id="maps" role="radiogroup" aria-label="ステージ"></div>
   <button class="btn" id="startBtn">さんぽに出る</button>
   <button class="btn sub" id="bookBtn">しば手帳</button>
   <p class="best" id="bestLine" style="color:var(--paper);text-shadow:1px 1px 0 var(--ink)"></p>
@@ -234,6 +236,7 @@ const RULES=[
   {id:'evo',name:'進化びより',d:'引き直し5回、宝箱が25秒ごと'}];
 const DAY=Math.floor((Date.now()+9*3600e3)/86400e3);
 const TODAY=RULES[hash(DAY,77)%RULES.length];
+let map='meadow';try{if(localStorage.getItem('shibasurv-map')==='snow')map='snow';}catch(e){}
 let coat='aka';try{const c=localStorage.getItem('shibasurv-coat');if(c&&COATS[c])coat=c;}catch(e){}
 const SHIBA=COATS.aka.spr;
 const CHI=[0,1].map(f=>makeSprite(12,12,a=>{
@@ -311,6 +314,12 @@ const TREE=makeSprite(22,30,a=>{
   a.ell(11,11,10.5,9.5,2); a.ell(7,8,4.5,4,4); a.ell(15,14,4,3.5,6); a.ell(11,17,7,3,6);
   a.dot(6,6,7); a.dot(14,9,7); a.dot(9,13,7);
 },P('#4f9e45','#7a4a28','#6cc35c',{6:'#3e8238',7:'#8ed77a'}));
+const PINE=makeSprite(20,32,a=>{
+  a.rect(9,25,3,6,3);
+  for(let i=0;i<4;i++){const y=3+i*6,w=3+i*2.6;a.ell(10,y+3,w,3.6,2);a.ell(10,y+1.6,w*.75,1.4,4);}
+  a.dot(10,0,4);a.dot(10,1,2);
+},P('#2f6b4f','#6a4a30','#ffffff'));
+const SROCK=makeSprite(14,9,a=>{a.ell(7,5,7,4.4,2);a.ell(6,2.6,5,1.8,4);a.rect(3,7,9,1,3);},P('#9aa7b6','#6c7786','#ffffff'));
 const ROCK=makeSprite(14,9,a=>{a.ell(7,5,7,4.4,2);a.ell(5,3.6,3.2,2,4);a.rect(3,7,9,1,3);},P('#a6a39c','#76736d','#cfccc4'));
 const BELL=makeSprite(9,10,a=>{a.ell(4.5,5.5,4.4,4.2,2);a.rect(0,7,9,2,2);a.ell(3,4,1.4,1.6,4);a.rect(3,9,3,1,3);a.rect(4,0,1,2,3);a.dot(4,8,3);},P('#ffd23f','#b8862a','#fff3b0'));
 const SPOT=makeSprite(6,6,a=>{a.ell(3,3,3.1,3.1,5);a.dot(2,2,2);},P('#4a4a4a'));
@@ -340,6 +349,16 @@ for(let v=0;v<10;v++){
     q.fillRect(x+1,y,1,1);q.fillRect(x,y+1,1,1);q.fillRect(x+2,y+1,1,1);q.fillRect(x+1,y+2,1,1);q.fillStyle='#f6a623';q.fillRect(x+1,y+1,1,1);}
   if(v===3){q.fillStyle='#5f9f4d';q.fillRect(8,10,1,3);q.fillRect(10,9,1,4);q.fillRect(12,11,1,2);}
   TILES.push(c);
+}
+const SNOWT=[];
+for(let v=0;v<10;v++){
+  const c=document.createElement('canvas');c.width=c.height=TILE;const q=c.getContext('2d');
+  q.fillStyle='#eef4fb';q.fillRect(0,0,TILE,TILE);
+  let s=v*577+29;const r=()=>{s=(s*16807)%2147483647;return s/2147483647;};
+  for(let i=0;i<8;i++){q.fillStyle=r()<.5?'#dde8f4':'#ffffff';const x=r()*TILE|0,y=r()*TILE|0;q.fillRect(x,y,2,1);}
+  if(v<2){q.fillStyle='#b9cde3';const x=3+r()*(TILE-8)|0,y=3+r()*(TILE-6)|0;q.fillRect(x,y,4,1);q.fillRect(x+1,y+1,3,1);}
+  if(v===2){q.fillStyle='#7aa86a';q.fillRect(9,12,1,2);q.fillRect(11,11,1,3);}
+  SNOWT.push(c);
 }
 
 // ---------- audio ----------
@@ -456,7 +475,7 @@ const STAMPS=[
   ['激','はげしい勝利','はげしいでボスに勝つ',(b,g)=>g.hard&&(g.won||g.endless)],
   ['夜','夜の散歩','エンドレスで10分まで',(b,g)=>g.endless&&g.T>=600]];
 function newGame(){
-  G={coat,hard:diff==='hard',rule:diff==='daily'?TODAY.id:null,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
+  G={coat,map,hard:diff==='hard',rule:diff==='daily'?TODAY.id:null,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
     w:{[COATS[coat].start]:COATS[coat].startLv||1},dmg:{},rerolls:diff==='daily'&&TODAY.id==='evo'?5:2,pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],pops:[],slashes:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
@@ -550,7 +569,7 @@ function hurtEnemy(e,dmg,nx,ny,kb,src){
   if(e.dead)return;
   let d=dmg*pow()*(.9+Math.random()*.2);const crit=Math.random()<.08;if(crit)d*=2;
   d=Math.max(1,Math.round(d));if(src)G.dmg[src]=(G.dmg[src]||0)+Math.min(d,Math.max(0,e.hp));e.hp-=d;e.flash=.09;
-  if(kb&&e.kind!=='boss'){const l=Math.hypot(nx,ny)||1;const m=e.kind==='elite'?.3:e.kind==='bull'?.6:1;e.kx+=nx/l*kb*m;e.ky+=ny/l*kb*m;}
+  if(kb&&e.kind!=='boss'){const l=Math.hypot(nx,ny)||1;const m=(e.kind==='elite'?.3:e.kind==='bull'?.6:1)*(G.map==='snow'?1.6:1);e.kx+=nx/l*kb*m;e.ky+=ny/l*kb*m;}
   if(G.nums.length<45)G.nums.push({x:e.x+(Math.random()*6-3),y:e.y-e.r-4,v:d,t:0,crit});
   SFX.hit();
   if(e.hp<=0)killEnemy(e);
@@ -745,7 +764,8 @@ function update(dt){
   // player
   if(!p.dead){
     const [ix,iy]=inputVec();const sp=55*(1+.1*pl('speed'))*(G.coat==='goma'?1.12:1)*(G.rule==='fast'?1.2:1);
-    p.moving=ix||iy;if(p.moving){G.moved=(G.moved||0)+dt;p.x+=ix*sp*dt;p.y+=iy*sp*dt;p.ang=Math.atan2(iy,ix);if(Math.abs(ix)>.15)p.face=ix>0?1:-1;p.anim+=dt*8;}
+    if(G.map==='snow'){const k=Math.min(1,dt*5);p.vx=(p.vx||0)+(ix*sp-(p.vx||0))*k;p.vy=(p.vy||0)+(iy*sp-(p.vy||0))*k;p.x+=p.vx*dt;p.y+=p.vy*dt;}
+    p.moving=ix||iy;if(p.moving){G.moved=(G.moved||0)+dt;if(G.map!=='snow'){p.x+=ix*sp*dt;p.y+=iy*sp*dt;}p.ang=Math.atan2(iy,ix);if(Math.abs(ix)>.15)p.face=ix>0?1:-1;p.anim+=dt*8;}
     p.inv=Math.max(0,p.inv-dt);
     if(p.hp/maxHp()<.3){G.beatT=(G.beatT||0)-dt;if(G.beatT<=0){G.beatT=p.hp/maxHp()<.15?.6:.9;SFX.beat();}}else G.beatT=0;
     const rg=.3*pl('regen')+(G.coat==='shiro'?.6:0);if(rg)p.hp=Math.min(maxHp(),p.hp+rg*dt);
@@ -766,7 +786,7 @@ function update(dt){
     else if(e.ai&&e.ai.mode==='dash'){const ds=e.kind==='husky'?190:240;vx=e.ai.dx*ds;vy=e.ai.dy*ds;e.face=e.ai.dx>0?1:-1;}
     else{const dx=p.x-e.x,dy=p.y-e.y,l=Math.hypot(dx,dy)||1;const s=k.spd*e.sm*(e.slowT>0?(e.kind==='boss'?.8:G.w.fart===6?.25:.6):1)*(G.won?0:1)*(e.kind==='boss'&&e.hp<e.max*.5?1.35:1)*(e.kind==='pug'&&((e.ai&&e.ai.hold>0)||l<60)?0:1);vx=dx/l*s;vy=dy/l*s;
       if(Math.abs(dx)>2)e.face=dx>0?1:-1;}
-    e.x+=(vx+e.kx)*dt;e.y+=(vy+e.ky)*dt;const dmp=Math.exp(-dt*9);e.kx*=dmp;e.ky*=dmp;
+    e.x+=(vx+e.kx)*dt;e.y+=(vy+e.ky)*dt;const dmp=Math.exp(-dt*(G.map==='snow'?5:9));e.kx*=dmp;e.ky*=dmp;
     e.anim+=dt*(k.spd/6);
     if(e.kind==='pug'&&!G.won&&!p.dead){const ai=e.ai||(e.ai={t:1.5+Math.random()*1.5});ai.t-=dt;
       if(ai.t<=0){const dx=p.x-e.x,dy=p.y-4-(e.y-6),l=Math.hypot(dx,dy)||1;
@@ -830,7 +850,7 @@ function draw(){
   // ground
   const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE);
   for(let ty=ty0;ty<=ty0+Math.ceil(H/TILE)+1;ty++)for(let tx=tx0;tx<=tx0+Math.ceil(W/TILE)+1;tx++){
-    const h=hash(tx,ty)%40;px.drawImage(TILES[h<10?h:3+(h%7)],tx*TILE-camX,ty*TILE-camY);}
+    const h=hash(tx,ty)%40;px.drawImage((G.map==='snow'?SNOWT:TILES)[h<10?h:3+(h%7)],tx*TILE-camX,ty*TILE-camY);}
   // fart aura
   if(G.w.fart){const R=WEAP.fart.R[G.w.fart-1];px.globalAlpha=.18+.05*Math.sin(G.T*6);px.fillStyle='#9ee06a';px.beginPath();px.ellipse(p.x-camX,p.y-camY-2,R,R*.8,0,0,Math.PI*2);px.fill();px.globalAlpha=1;}
   // gems & items
@@ -843,7 +863,7 @@ function draw(){
   // units sorted by y
   const list=G.en.slice();list.push(p);for(const o of obstaclesNear(p.x,p.y,Math.max(W,H)*.7,[]))list.push({ob:o,y:o.y});list.sort((a,b)=>a.y-b.y);
   for(const u of list){
-    if(u.ob){const o=u.ob,s=o.rock?ROCK:TREE;shadow(o.x,o.y+1,o.rock?12:16);px.drawImage(s.r,Math.round(o.x-camX-s.w/2),Math.round(o.y-camY-s.h+2));continue;}
+    if(u.ob){const sn=G.map==='snow',o=u.ob,s=o.rock?(sn?SROCK:ROCK):(sn?PINE:TREE);shadow(o.x,o.y+1,o.rock?12:16);px.drawImage(s.r,Math.round(o.x-camX-s.w/2),Math.round(o.y-camY-s.h+2));continue;}
     if(u===p){
       if(state==='title')continue;
       if(p.dead){const s=COATS[G.coat].spr[0];px.save();px.translate(Math.round(p.x-camX),Math.round(p.y-camY-6));px.rotate(Math.PI/2*p.face);px.drawImage(s.r,-s.w/2,-s.h/2);px.restore();continue;}
@@ -893,6 +913,7 @@ function draw(){
     if(state!=='title'){if(G.endless){c='20,30,80';a=Math.min(.32,.18+(T-BOSS_T)/900);}
       else if(T>150){c='255,120,40';a=Math.min(.2,(T-150)/150*.2);}}
     if(a>0){px.fillStyle=`rgba(${c},${a})`;px.fillRect(0,0,W,H);}
+    if(G.map==='snow'){px.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<40;i++){const sx=((hash(i,3)%W)+G.T*(6+i%5)+Math.sin(G.T+i)*6)%W,sy=((hash(i,8)%H)+G.T*(18+i%7))%H;px.fillRect(sx|0,sy|0,i%3?1:2,i%3?1:2);}}
     if(G.endless){for(let i=0;i<14;i++){const sx=(hash(i,9)%W),sy=(hash(i,4)%H);if(((G.T*2+i)|0)%5){px.fillStyle='rgba(255,244,200,.55)';px.fillRect(sx,sy,1,1);}}}}
   // fx
   for(const f of G.fx){px.fillStyle=f.c;const s=f.s*(1-f.t/f.life*.5);px.fillRect(Math.round(f.x-camX),Math.round(f.y-camY),Math.max(1,Math.round(s)),Math.max(1,Math.round(s)));}
@@ -992,6 +1013,11 @@ function renderCoats(){
   for(const [k,label] of [['normal','ふつう'],['hard',hardOpen?'はげしい':'はげしい（未解放）'],['daily','きょうの散歩']]){const b=document.createElement('button');b.className='mode'+(k==='hard'?' hard':k==='daily'?' daily':'');b.id='mode-'+k;b.textContent=label;
     b.setAttribute('role','radio');b.setAttribute('aria-checked',String(diff===k));if(k==='hard'&&!hardOpen)b.disabled=true;
     b.addEventListener('click',()=>{diff=k;try{localStorage.setItem('shibasurv-diff',k);}catch(e){}renderCoats();});$('modes').appendChild(b);}
+  const snowOpen=best.wins>=1;if(!snowOpen)map='meadow';
+  $('maps').innerHTML='';
+  for(const [k,label] of [['meadow','草原'],['snow',snowOpen?'雪の公園':'雪の公園（ボスをたおすと）']]){const b=document.createElement('button');b.className='mode'+(k==='snow'?' snow':'');b.id='map-'+k;b.textContent=label;
+    b.setAttribute('role','radio');b.setAttribute('aria-checked',String(map===k));if(k==='snow'&&!snowOpen)b.disabled=true;
+    b.addEventListener('click',()=>{map=k;try{localStorage.setItem('shibasurv-map',k);}catch(e){}renderCoats();if(G&&state==='title')G.map=map;});$('maps').appendChild(b);}
   $('perk').textContent=COATS[coat].perk;drawTitleShiba();
   const db=best.daily&&best.daily.day===DAY?best.daily:null;
   $('dailyLine').hidden=diff!=='daily';$('dailyLine').innerHTML=`<b>${TODAY.name}</b> ${TODAY.d}`+(db?`<br>きょうのベスト ${fmt(db.time)}・${db.kills}匹${db.won?'・ボス撃破':''}`:'');
@@ -1005,7 +1031,7 @@ function start(){
 function endGame(){
   if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;$('level').hidden=true;$('pause').hidden=true;stick=null;
   const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
-  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}{const runs=best.runs||[];runs.push({t:Math.floor(G.T),k:G.kills,lv:G.lv,c:G.coat,m:G.hard?'h':G.rule?'d':'n',w:!!(win||G.endless),day:DAY});
+  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}{const runs=best.runs||[];runs.push({t:Math.floor(G.T),k:G.kills,lv:G.lv,c:G.coat,m:G.hard?'h':G.rule?'d':'n',sn:G.map==='snow',w:!!(win||G.endless),day:DAY});
    runs.sort((a,b)=>b.t-a.t||b.k-a.k);best.runs=runs.slice(0,5);}
   if(G.rule){const db=best.daily&&best.daily.day===DAY?best.daily:{day:DAY,time:0,kills:0,won:false};if(G.T>db.time)db.time=G.T;if(G.kills>db.kills)db.kills=G.kills;if(win||G.endless)db.won=true;best.daily=db;}
   if(win&&!G.endless){best.wins++;if(G.hard)best.hardWins=(best.hardWins||0)+1;}if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
@@ -1020,8 +1046,8 @@ function endGame(){
   const tot=Object.values(G.dmg).reduce((a,b)=>a+b,0)||1,rows=Object.entries(G.dmg).sort((a,b)=>b[1]-a[1]);
   $('dmgBars').innerHTML=rows.length?'<div class="cap">技ごとのダメージ</div>'+rows.map(([k,v])=>{const d=WEAP[k],ev=G.w[k]===6;
     return `<div class="row"><span class="sq" style="background:${ev?'#ffd23f':d.col}">${ev?d.evo.ch:d.ch}</span><span>${ev?d.evo.name:d.name}</span><span class="bar" style="width:${Math.max(2,Math.round(v/rows[0][1]*100))}%"></span></div>`;}).join(''):'';
-  const top=rows[0]?(G.w[rows[0][0]]===6?WEAP[rows[0][0]].evo.name:WEAP[rows[0][0]].name):'';
-  G.shareText=`しばサバイバー${G.hard?'【はげしい】':G.rule?'【きょうの散歩: '+TODAY.name+'】':''}\n${COATS[G.coat].name}で${fmt(G.T)}生きのびた${win||G.endless?'（ボス撃破）':''}\nLv${G.lv}・${G.kills}匹${top?'・主力: '+top:''}\nhttps://yasufabric.github.io/shiba-survivor/`;
+  G.mapName=G.map==='snow'?'雪の公園で':'';const top=rows[0]?(G.w[rows[0][0]]===6?WEAP[rows[0][0]].evo.name:WEAP[rows[0][0]].name):'';
+  G.shareText=`しばサバイバー${G.hard?'【はげしい】':G.rule?'【きょうの散歩: '+TODAY.name+'】':''}\n${G.mapName}${COATS[G.coat].name}で${fmt(G.T)}生きのびた${win||G.endless?'（ボス撃破）':''}\nLv${G.lv}・${G.kills}匹${top?'・主力: '+top:''}\nhttps://yasufabric.github.io/shiba-survivor/`;
   $('copyBtn').textContent='結果をコピー';
   $('over').hidden=false;showBest();
 }
@@ -1038,7 +1064,7 @@ $('copyBtn').addEventListener('click',()=>{const t=G.shareText||'';const done=()
 function fallbackCopy(t,done){const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
   let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();if(ok)done();else $('copyBtn').textContent='コピーできませんでした';}
 $('bookBtn').addEventListener('click',()=>{const st=best.st||{};$('stamps').innerHTML=STAMPS.map(([c,n,d])=>`<div class="stamp${st[c]?' got':''}"><b>${c}</b><span>${n}<br><small>${d}</small></span></div>`).join('');$('book').hidden=false;});
-function renderRecords(){const r=best.runs||[];$('records').innerHTML='<div class="cap">さんぽの記録（長く生きのびた順）</div>'+(r.length?r.map((x,i)=>`<div class="row"><span>${i+1}</span><span>${fmt(x.t)}</span><span>${COATS[x.c]?COATS[x.c].name:''}・Lv${x.lv}・${x.k}匹${x.w?'・ボス撃破':''}${x.m==='h'?'・はげしい':x.m==='d'?'・きょうの散歩':''}</span></div>`).join(''):'<div>まだ記録がありません</div>');}
+function renderRecords(){const r=best.runs||[];$('records').innerHTML='<div class="cap">さんぽの記録（長く生きのびた順）</div>'+(r.length?r.map((x,i)=>`<div class="row"><span>${i+1}</span><span>${fmt(x.t)}</span><span>${COATS[x.c]?COATS[x.c].name:''}・Lv${x.lv}・${x.k}匹${x.w?'・ボス撃破':''}${x.m==='h'?'・はげしい':x.m==='d'?'・きょうの散歩':''}${x.sn?'・雪':''}</span></div>`).join(''):'<div>まだ記録がありません</div>');}
 $('bookBtn').addEventListener('click',renderRecords);
 $('bookClose').addEventListener('click',()=>{$('book').hidden=true;});
 $('rerollBtn').addEventListener('click',()=>{if(state!=='level'||G.rerolls<=0)return;G.rerolls--;SFX.throw();showCards(performance.now());});
