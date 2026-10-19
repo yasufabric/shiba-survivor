@@ -44,7 +44,7 @@ p{margin:0;font-size:15px;line-height:1.6}
 .best{font-size:13px;opacity:.8}
 #title canvas{width:128px;height:120px;image-rendering:pixelated;animation:bob .5s steps(2) infinite}
 @keyframes bob{50%{transform:translateY(-4px)}}
-.coats{display:grid;grid-template-columns:repeat(4,74px);gap:8px}
+.coats{display:grid;grid-template-columns:repeat(5,minmax(0,64px));gap:6px}
 .coat{font-family:var(--font);color:var(--ink);background:var(--paper);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-size:13px}
 .coat canvas{image-rendering:pixelated}
 .coat[aria-checked="true"]{background:var(--sun);transform:translateY(-3px);box-shadow:0 6px 0 var(--ink)}
@@ -220,10 +220,20 @@ function shibaSprites(pal,sesame){return [0,1].map(f=>makeSprite(17,16,a=>{
 
   if(sesame)for(const [x,y] of [[4,8],[7,7],[10,9],[5,10],[9,8],[12,4],[2,6],[11,3],[6,9]])a.dot(x,y,3);
 },pal));}
+function mameSprites(pal){return [0,1].map(f=>makeSprite(13,12,a=>{
+  if(f===0){a.rect(3,9,2,3,3);a.rect(8,9,2,3,3);}else{a.rect(4,9,2,3,3);a.rect(7,9,2,2,3);a.rect(2,9,2,2,3);}
+  a.ell(5.5,7.6,4.2,2.5,2); a.ell(6,9,2.6,1,4);
+  a.ell(1.6,5.4,1.7,1.7,2); a.dot(1,5,4);
+  a.ell(9,5,3.6,3.4,2);
+  a.rect(6,1,2,2,2); a.dot(7,2,6); a.rect(10,1,2,2,2); a.dot(10,2,6);
+  a.ell(10,6.6,2.2,1.4,4);
+  a.dot(8,4,5); a.dot(11,4,5); a.dot(12,6,5); a.dot(8,3,4); a.dot(11,3,4);
+},pal));}
 const COATS={
   aka:{name:'赤柴',spr:shibaSprites(P('#e0913f','#b5622a','#fff1d6')),start:'bone',perk:'ホネ投げで出発',lock:null},
   kuro:{name:'黒柴',spr:shibaSprites(P('#4b3b36','#2a1e1a','#fff1d6',{5:'#0a0605'})),start:'bark',startLv:2,perk:'ワン!Lv2で出発・威力+15%',lock:{text:'3分生きのびる',ok:b=>b.time>=180}},
   shiro:{name:'白柴',spr:shibaSprites(P('#fbf3e6','#d8c8b0','#ffffff')),start:'tail',perk:'しっぽボールで出発・HP自然回復',lock:{text:'合計1000匹たおす',ok:b=>(b.total||0)>=1000}},
+  mame:{name:'豆柴',spr:mameSprites(P('#eba45a','#bf7234','#fff4de')),start:'toy',perk:'ぬいぐるみで出発・小さくて当たりにくい・HP80',lock:{text:'1回で1500匹',ok:b=>!!(b.st&&b.st['千'])}},
   goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',startLv:2,perk:'フリスビーLv2で出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
 };
 const OPT={shake:!matchMedia('(prefers-reduced-motion: reduce)').matches,buzz:true};try{Object.assign(OPT,JSON.parse(localStorage.getItem('shibasurv-opt')||'{}'));}catch(e){}
@@ -476,7 +486,7 @@ const STAMPS=[
   ['勝','ボスをたおす','セントバーナードに勝つ',(b,g)=>g.won||g.endless],
   ['進','進化3つ','1回で技を3つ進化',(b,g)=>Object.values(g.w).filter(v=>v===6).length>=3],
   ['千','1500匹','1回で1500匹たおす',(b,g)=>g.kills>=1500],
-  ['柴','柴がそろう','4匹とも仲間にする',(b,g)=>Object.values(COATS).every(c=>!c.lock||c.lock.ok(b))],
+  ['柴','柴がそろう','5匹とも仲間にする',(b,g)=>Object.values(COATS).every(c=>!c.lock||c.lock.ok(b))],
   ['激','はげしい勝利','はげしいでボスに勝つ',(b,g)=>g.hard&&(g.won||g.endless)],
   ['夜','夜の散歩','エンドレスで10分まで',(b,g)=>g.endless&&g.T>=600]];
 function newGame(){
@@ -490,7 +500,7 @@ function xpNeed(l){if(l<=3)return [0,3,5,8][l];return Math.floor(4+l*2.6+(l>15?(
 const pl=k=>G.pas[k]||0;
 const cdMul=()=>Math.pow(.92,pl('haste'));
 const pow=()=>(1+.12*pl('power'))*(G.coat==='kuro'?1.15:1)*(G.rule==='glass'?1.6:1);
-const maxHp=()=>(G.rule==='glass'?50:100)+25*pl('hp');
+const maxHp=()=>(G.rule==='glass'?50:G.coat==='mame'?80:100)+25*pl('hp');
 
 // ---------- spatial grid ----------
 const CELL=24;let grid=new Map();
@@ -787,7 +797,7 @@ function update(dt){
   if(!G.won&&!p.dead)spawner(dt);
   if(G.boss&&!G.boss.dead&&!p.dead)bossAI(G.boss,dt);
   for(const h of G.hz){h.x+=h.vx*dt;h.y+=h.vy*dt;h.life-=dt;h.spin+=dt;
-    if(!p.dead&&!G.won&&p.inv<=0&&Math.hypot(h.x-p.x,h.y-(p.y-4))<h.r+4){p.hp-=Math.max(1,h.dmg-pl('armor'));p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();h.life=0;if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}}
+    if(!p.dead&&!G.won&&p.inv<=0&&Math.hypot(h.x-p.x,h.y-(p.y-4))<h.r+(G.coat==='mame'?2.5:4)){p.hp-=Math.max(1,h.dmg-pl('armor'));p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();h.life=0;if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}}
   G.hz=G.hz.filter(h=>h.life>0&&!G.won);
   buildGrid();
   // enemies
@@ -821,7 +831,7 @@ function update(dt){
     query(e.x,e.y,e.r*.8,(o,dx,dy)=>{if(o===e)return;const d=Math.hypot(dx,dy)||.01,ov=(e.r+o.r)*.8-d;if(ov>0){const push=ov*.25;o.x+=dx/d*push;o.y+=dy/d*push;}});}
   // contact damage
   if(!p.dead&&!G.won&&p.inv<=0){
-    let worst=0;query(p.x,p.y-4,4,(e)=>{worst=Math.max(worst,Math.round(e.k.dmg*e.dm));});
+    let worst=0;query(p.x,p.y-4,G.coat==='mame'?2.5:4,(e)=>{worst=Math.max(worst,Math.round(e.k.dmg*e.dm));});
     if(worst){p.hp-=Math.max(1,worst-pl('armor'));p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();G.hitstop=.05;buzz(25);
       for(let i=0;i<6;i++)addFx(p.x,p.y-4,(Math.random()-.5)*60,(Math.random()-.5)*60,.3,'#ff5e57',2);
       if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}
