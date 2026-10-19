@@ -381,7 +381,7 @@ function killEnemy(e){
   for(let i=0;i<n;i++)addFx(e.x,e.y,(Math.random()-.5)*90,(Math.random()-.5)*90-20,.35+Math.random()*.3,i%3?'#fff4dc':'#ffd23f',e.kind==='boss'?3:2);
   if(e.kind==='boss'){G.won=true;G.endT=2.2;G.shake=10;G.slow=.25;SFX.win();for(let i=0;i<20;i++)dropGem(e.x+(Math.random()-.5)*40,e.y+(Math.random()-.5)*40,5);return;}
   if(e.kind==='elite'){G.items.push({type:'chest',x:e.x,y:e.y,t:0});if(Math.random()<.5)G.items.push({type:'bag',x:e.x+10,y:e.y,t:0});return;}
-  dropGem(e.x,e.y,e.k.xp);
+  dropGem(e.x,e.y,e.k.xp+(G.T>=150?1:0));
   const r=Math.random();
   if(r<.011)G.items.push({type:'meat',x:e.x,y:e.y,t:0});
   else if(r<.0135)G.items.push({type:'bag',x:e.x,y:e.y,t:0});
@@ -573,7 +573,7 @@ function update(dt){
   updateProj(dt);
   G.en=G.en.filter(e=>!e.dead);
   // gems
-  const mr=30*(1+.3*pl('magnet'));
+  const mr=36*(1+.3*pl('magnet'));
   for(const g of G.gems){
     const dx=p.x-g.x,dy=p.y-3-g.y,d=Math.hypot(dx,dy)||1;
     if(!g.m&&d<mr)g.m=true;
