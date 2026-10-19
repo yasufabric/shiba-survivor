@@ -43,6 +43,11 @@ p{margin:0;font-size:15px;line-height:1.6}
 .coat.locked{background:#c9bfae;cursor:default}.coat.locked canvas{filter:brightness(0) opacity(.35)}
 .coat small{font-size:10px;line-height:1.2;min-height:24px}
 .perk{font-size:14px;color:var(--paper);text-shadow:1px 1px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink);min-height:1.4em}
+.dmgbars{display:flex;flex-direction:column;gap:5px;width:100%}
+.dmgbars .row{display:grid;grid-template-columns:22px 92px 1fr;gap:6px;align-items:center;font-size:13px;text-align:left}
+.dmgbars .sq{width:22px;height:22px;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;box-sizing:border-box}
+.dmgbars .bar{height:10px;background:var(--tan);border:2px solid var(--ink);min-width:2px;box-sizing:border-box}
+.dmgbars .cap{font-size:12px;opacity:.75;text-align:left}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -94,6 +99,7 @@ p{margin:0;font-size:15px;line-height:1.6}
   <div class="panel">
     <h2 id="overTitle">やられた…</h2>
     <div class="stats" id="overStats"></div>
+    <div class="dmgbars" id="dmgBars"></div>
     <p class="best" id="overBest"></p>
     <button class="btn" id="retryBtn">もう一回</button>
     <button class="btn sub" id="titleBtn">柴をえらびなおす</button>
@@ -337,7 +343,7 @@ const BOSS_T=300;
 function newGame(){
   G={coat,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
-    w:{[COATS[coat].start]:1},pas:{},wt:{},tailA:0,
+    w:{[COATS[coat].start]:1},dmg:{},pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],pops:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
@@ -410,10 +416,10 @@ function bossAI(b,dt){
 function ring(kind,n,R,gap){const g0=Math.random()*n|0;for(let i=0;i<n;i++){if(gap&&((i-g0+n)%n)<gap)continue;const a=i/n*Math.PI*2;spawn(kind,G.p.x+Math.cos(a)*R,G.p.y+Math.sin(a)*R);}}
 function banner(t,c){G.banner={t,c:c||'#ffd23f',life:2.4};}
 
-function hurtEnemy(e,dmg,nx,ny,kb){
+function hurtEnemy(e,dmg,nx,ny,kb,src){
   if(e.dead)return;
   let d=dmg*pow()*(.9+Math.random()*.2);const crit=Math.random()<.08;if(crit)d*=2;
-  d=Math.max(1,Math.round(d));e.hp-=d;e.flash=.09;
+  d=Math.max(1,Math.round(d));if(src)G.dmg[src]=(G.dmg[src]||0)+Math.min(d,Math.max(0,e.hp));e.hp-=d;e.flash=.09;
   if(kb&&e.kind!=='boss'){const l=Math.hypot(nx,ny)||1;const m=e.kind==='elite'?.3:e.kind==='bull'?.6:1;e.kx+=nx/l*kb*m;e.ky+=ny/l*kb*m;}
   if(G.nums.length<70)G.nums.push({x:e.x+(Math.random()*6-3),y:e.y-e.r-4,v:d,t:0,crit});
   SFX.hit();
@@ -459,16 +465,16 @@ function weapons(dt){
     if(k==='tail'){
       G.tailA+=def.spd[L]*dt;const n=def.n[L];
       for(let i=0;i<n;i++){const a=G.tailA+i/n*Math.PI*2,bx=p.x+Math.cos(a)*def.rad[L],by=p.y-3+Math.sin(a)*def.rad[L]*.8;
-        query(bx,by,4,(e,dx,dy)=>{if(G.T-e.hT>.42){e.hT=G.T;hurtEnemy(e,def.dmg[L],e.x-p.x,e.y-p.y,70);}});}
+        query(bx,by,4,(e,dx,dy)=>{if(G.T-e.hT>.42){e.hT=G.T;hurtEnemy(e,def.dmg[L],e.x-p.x,e.y-p.y,70,'tail');}});}
     }
     if(k==='bark'&&G.wt[k]<=0){
       G.wt[k]=def.cd[L]*cm;const R=def.R[L];SFX.bark();G.shake=Math.max(G.shake,1.5);
       G.rings.push({x:p.x,y:p.y-3,R:L===5?Math.max(W,H)*.7:R,t:0});G.nums.push({x:p.x,y:p.y-18,v:L===5?'ワオーン!':'ワン!',t:0,word:true});if(L===5){G.shake=Math.max(G.shake,4);}
-      query(p.x,p.y,R,(e,dx,dy)=>hurtEnemy(e,def.dmg[L],dx,dy,170));
+      query(p.x,p.y,R,(e,dx,dy)=>hurtEnemy(e,def.dmg[L],dx,dy,170,'bark'));
     }
     if(k==='fart'){
       if(Math.random()<dt*14){const a=Math.random()*Math.PI*2,r=Math.random()*def.R[L];addFx(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r*.8,0,-8,.7,'rgba(160,214,90,.55)',3);}
-      if(G.wt[k]<=0){G.wt[k]=.4;query(p.x,p.y,def.R[L],(e,dx,dy)=>{e.slowT=L===5?.9:.6;hurtEnemy(e,def.dmg[L],dx,dy,0);});}
+      if(G.wt[k]<=0){G.wt[k]=.4;query(p.x,p.y,def.R[L],(e,dx,dy)=>{e.slowT=L===5?.9:.6;hurtEnemy(e,def.dmg[L],dx,dy,0,'fart');});}
     }
     if(k==='paw'&&G.wt[k]<=0){
       G.wt[k]=def.cd[L]*cm;
@@ -488,12 +494,12 @@ function updateProj(dt){
     if(b.type==='bone'){
       b.life-=dt;b.spin+=dt;if(b.life<=0){b.dead=true;continue;}
       for(let sub=0;sub<2&&!b.dead;sub++){b.x+=b.vx*dt/2;b.y+=b.vy*dt/2;
-        query(b.x,b.y,4,(e)=>{if(b.dead||b.hit.has(e))return;b.hit.add(e);hurtEnemy(e,b.dmg,b.vx,b.vy,45);if(--b.pierce<=0)b.dead=true;});}
+        query(b.x,b.y,4,(e)=>{if(b.dead||b.hit.has(e))return;b.hit.add(e);hurtEnemy(e,b.dmg,b.vx,b.vy,45,'bone');if(--b.pierce<=0)b.dead=true;});}
     }else if(b.type==='fris'){
       b.t+=dt;if(b.t>=b.dur){b.dead=true;continue;}
       const s=Math.sin(Math.PI*b.t/b.dur)*b.range,curve=Math.sin(Math.PI*2*b.t/b.dur)*14;
       b.x=p.x+Math.cos(b.a)*s-Math.sin(b.a)*curve;b.y=p.y-3+Math.sin(b.a)*s+Math.cos(b.a)*curve;
-      query(b.x,b.y,5,(e,dx,dy)=>{if(G.T-e.hF>.28){e.hF=G.T;hurtEnemy(e,b.dmg,Math.cos(b.a),Math.sin(b.a),60);}});
+      query(b.x,b.y,5,(e,dx,dy)=>{if(G.T-e.hF>.28){e.hF=G.T;hurtEnemy(e,b.dmg,Math.cos(b.a),Math.sin(b.a),60,'fris');}});
     }
   }
   G.proj=G.proj.filter(b=>!b.dead);
@@ -501,7 +507,7 @@ function updateProj(dt){
     w.t+=dt;
     if(!w.done&&w.t>=w.fall){w.done=true;SFX.thump();G.shake=Math.max(G.shake,2.5);
       for(let i=0;i<10;i++){const a=i/10*Math.PI*2;addFx(w.x,w.y,Math.cos(a)*70,Math.sin(a)*50,.3,'#ffd6e3',2);}
-      query(w.x,w.y,w.R,(e,dx,dy)=>hurtEnemy(e,w.dmg,dx,dy,120));}
+      query(w.x,w.y,w.R,(e,dx,dy)=>hurtEnemy(e,w.dmg,dx,dy,120,'paw'));}
   }
   G.paws=G.paws.filter(w=>w.t<w.fall+.45);
   for(const r of G.rings)r.t+=dt;G.rings=G.rings.filter(r=>r.t<.32);
@@ -823,6 +829,9 @@ function endGame(){
   $('overStats').innerHTML=`<span>生きのびた</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
   $('overBest').textContent=(fresh.length?fresh.map(k=>COATS[k].name).join('と')+'が仲間になった! ':'')+(rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`);
   renderCoats();
+  const tot=Object.values(G.dmg).reduce((a,b)=>a+b,0)||1,rows=Object.entries(G.dmg).sort((a,b)=>b[1]-a[1]);
+  $('dmgBars').innerHTML=rows.length?'<div class="cap">技ごとのダメージ</div>'+rows.map(([k,v])=>{const d=WEAP[k],ev=G.w[k]===6;
+    return `<div class="row"><span class="sq" style="background:${ev?'#ffd23f':d.col}">${ev?d.evo.ch:d.ch}</span><span>${ev?d.evo.name:d.name}</span><span class="bar" style="width:${Math.max(2,Math.round(v/rows[0][1]*100))}%"></span></div>`;}).join(''):'';
   $('over').hidden=false;showBest();
 }
 function openPause(){if(state!=='play')return;state='pause';stick=null;
