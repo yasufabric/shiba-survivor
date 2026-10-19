@@ -72,6 +72,9 @@ p{margin:0;font-size:15px;line-height:1.6}
 .mode.daily[aria-checked="true"]{background:#9fdcff}
 .daily-line{font-size:13px;line-height:1.5;background:var(--paper);border:2px solid var(--ink);padding:6px 10px;max-width:320px}
 .daily-line b{font-weight:400;color:#2a6fb0}
+.records{width:100%;font-size:13px;text-align:left;display:flex;flex-direction:column;gap:3px;font-variant-numeric:tabular-nums}
+.records .cap{font-size:12px;opacity:.75;margin-top:4px}
+.records .row{display:grid;grid-template-columns:18px 64px 1fr;gap:6px;border-bottom:1px dashed #c9bfae;padding-bottom:3px}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -121,6 +124,7 @@ p{margin:0;font-size:15px;line-height:1.6}
   <div class="panel">
     <h2>しば手帳</h2>
     <div class="stamps" id="stamps"></div>
+    <div class="records" id="records"></div>
     <button class="btn sub" id="bookClose">とじる</button>
   </div>
 </div>
@@ -993,9 +997,11 @@ function start(){
   G.nums.push({x:0,y:-20,v:'いくぞ!',t:0,word:true});G.hint=!best.time;G.moved=0;
 }
 function endGame(){
-  if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;stick=null;
+  if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;$('level').hidden=true;$('pause').hidden=true;stick=null;
   const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
-  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(G.rule){const db=best.daily&&best.daily.day===DAY?best.daily:{day:DAY,time:0,kills:0,won:false};if(G.T>db.time)db.time=G.T;if(G.kills>db.kills)db.kills=G.kills;if(win||G.endless)db.won=true;best.daily=db;}
+  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}{const runs=best.runs||[];runs.push({t:Math.floor(G.T),k:G.kills,lv:G.lv,c:G.coat,m:G.hard?'h':G.rule?'d':'n',w:!!(win||G.endless),day:DAY});
+   runs.sort((a,b)=>b.t-a.t||b.k-a.k);best.runs=runs.slice(0,5);}
+  if(G.rule){const db=best.daily&&best.daily.day===DAY?best.daily:{day:DAY,time:0,kills:0,won:false};if(G.T>db.time)db.time=G.T;if(G.kills>db.kills)db.kills=G.kills;if(win||G.endless)db.won=true;best.daily=db;}
   if(win&&!G.endless){best.wins++;if(G.hard)best.hardWins=(best.hardWins||0)+1;}if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
   best.st=best.st||{};const newSt=STAMPS.filter(([c,n,d,ok])=>!best.st[c]&&ok(best,G));for(const st of newSt)best.st[st[0]]=1;saveBest();
   const fresh=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(best)&&!before.includes(k));
@@ -1026,6 +1032,8 @@ $('copyBtn').addEventListener('click',()=>{const t=G.shareText||'';const done=()
 function fallbackCopy(t,done){const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
   let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();if(ok)done();else $('copyBtn').textContent='コピーできませんでした';}
 $('bookBtn').addEventListener('click',()=>{const st=best.st||{};$('stamps').innerHTML=STAMPS.map(([c,n,d])=>`<div class="stamp${st[c]?' got':''}"><b>${c}</b><span>${n}<br><small>${d}</small></span></div>`).join('');$('book').hidden=false;});
+function renderRecords(){const r=best.runs||[];$('records').innerHTML='<div class="cap">さんぽの記録（長く生きのびた順）</div>'+(r.length?r.map((x,i)=>`<div class="row"><span>${i+1}</span><span>${fmt(x.t)}</span><span>${COATS[x.c]?COATS[x.c].name:''}・Lv${x.lv}・${x.k}匹${x.w?'・ボス撃破':''}${x.m==='h'?'・はげしい':x.m==='d'?'・きょうの散歩':''}</span></div>`).join(''):'<div>まだ記録がありません</div>');}
+$('bookBtn').addEventListener('click',renderRecords);
 $('bookClose').addEventListener('click',()=>{$('book').hidden=true;});
 $('rerollBtn').addEventListener('click',()=>{if(state!=='level'||G.rerolls<=0)return;G.rerolls--;SFX.throw();showCards(performance.now());});
 $('moreBtn').addEventListener('click',()=>{if(!G.won)return;G.endless=true;G.won=false;G.slow=1;G.endT=0;G.nextBoss=G.T+150;G.bossN=1;
