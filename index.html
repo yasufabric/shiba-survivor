@@ -338,6 +338,7 @@ const SFX={
   throw(){if(!ac)return;noise(.05,.03,3200);},
   warn(){if(!ac)return;const n=ac.currentTime;tone(880,.09,'square',.08,0,n);tone(660,.12,'square',.08,0,n+.1);},
   boss(){if(!ac)return;const n=ac.currentTime;tone(98,.9,'sawtooth',.14,-40,n);tone(104,.9,'square',.06,-40,n+.05);},
+  beat(){if(!ac)return;const n=ac.currentTime;tone(70,.12,'sine',.22,-20,n);tone(60,.14,'sine',.18,-20,n+.16);},
   heal(){if(!ac)return;const n=ac.currentTime;[659,880].forEach((f,i)=>tone(f,.12,'triangle',.08,0,n+i*.08));},
   win(){if(!ac)return;const n=ac.currentTime;[523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,.2,'square',.08,0,n+i*.11));},
   lose(){if(!ac)return;const n=ac.currentTime;[392,330,262,196].forEach((f,i)=>tone(f,.25,'triangle',.1,0,n+i*.16));}
@@ -698,6 +699,7 @@ function update(dt){
     const [ix,iy]=inputVec();const sp=55*(1+.1*pl('speed'))*(G.coat==='goma'?1.12:1);
     p.moving=ix||iy;if(p.moving){G.moved=(G.moved||0)+dt;p.x+=ix*sp*dt;p.y+=iy*sp*dt;p.ang=Math.atan2(iy,ix);if(Math.abs(ix)>.15)p.face=ix>0?1:-1;p.anim+=dt*8;}
     p.inv=Math.max(0,p.inv-dt);
+    if(p.hp/maxHp()<.3){G.beatT=(G.beatT||0)-dt;if(G.beatT<=0){G.beatT=p.hp/maxHp()<.15?.6:.9;SFX.beat();}}else G.beatT=0;
     const rg=.3*pl('regen')+(G.coat==='shiro'?.6:0);if(rg)p.hp=Math.min(maxHp(),p.hp+rg*dt);
   }
   if(!G.won&&!p.dead)spawner(dt);
