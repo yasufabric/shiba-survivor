@@ -36,6 +36,13 @@ p{margin:0;font-size:15px;line-height:1.6}
 .best{font-size:13px;opacity:.8}
 #title canvas{width:128px;height:120px;image-rendering:pixelated;animation:bob .5s steps(2) infinite}
 @keyframes bob{50%{transform:translateY(-4px)}}
+.coats{display:grid;grid-template-columns:repeat(4,74px);gap:8px}
+.coat{font-family:var(--font);color:var(--ink);background:var(--paper);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-size:13px}
+.coat canvas{image-rendering:pixelated}
+.coat[aria-checked="true"]{background:var(--sun);transform:translateY(-3px);box-shadow:0 6px 0 var(--ink)}
+.coat.locked{background:#c9bfae;cursor:default}.coat.locked canvas{filter:brightness(0) opacity(.35)}
+.coat small{font-size:10px;line-height:1.2;min-height:24px}
+.perk{font-size:14px;color:var(--paper);text-shadow:1px 1px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink);min-height:1.4em}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -62,6 +69,8 @@ p{margin:0;font-size:15px;line-height:1.6}
   <canvas id="titleShiba" width="32" height="30"></canvas>
   <h1><small>5分間 生きのびろ</small>しば<br>サバイバー</h1>
   <p style="color:var(--paper);text-shadow:2px 2px 0 var(--ink)">指でなぞって動くだけ。攻撃は勝手に出る。<br>ホネを集めてレベルアップ、技を選んで強くなれ。</p>
+  <div class="coats" id="coats" role="radiogroup" aria-label="柴をえらぶ"></div>
+  <p class="perk" id="perk"></p>
   <button class="btn" id="startBtn">さんぽに出る</button>
   <p class="best" id="bestLine" style="color:var(--paper);text-shadow:1px 1px 0 var(--ink)"></p>
 </div>
@@ -87,6 +96,7 @@ p{margin:0;font-size:15px;line-height:1.6}
     <div class="stats" id="overStats"></div>
     <p class="best" id="overBest"></p>
     <button class="btn" id="retryBtn">もう一回</button>
+    <button class="btn sub" id="titleBtn">柴をえらびなおす</button>
   </div>
 </div>
 
@@ -131,7 +141,7 @@ function makeSprite(w,h,paint,pal){
 }
 // palette slots: 2 coat, 3 dark, 4 light, 5 black, 6 pink, 7 white, 8 gold
 const P=(coat,dark,light,extra={})=>Object.assign([0,0,coat,dark,light,'#1d1410','#f48aa0','#ffffff','#f2b134'],extra);
-const SHIBA=[0,1].map(f=>makeSprite(17,16,a=>{
+function shibaSprites(pal,sesame){return [0,1].map(f=>makeSprite(17,16,a=>{
   if(f===0){a.rect(4,12,2,3,3);a.rect(10,12,2,3,3);}else{a.rect(5,12,2,3,3);a.rect(9,12,2,2,3);a.rect(3,12,2,2,3);}
   a.ell(7.5,10,5.6,3.3,2); a.ell(8,11.8,3.6,1.3,4);
   a.ell(2.6,7,2.3,2.3,2); a.dot(2,7,4); a.dot(3,6,4);
@@ -139,7 +149,17 @@ const SHIBA=[0,1].map(f=>makeSprite(17,16,a=>{
   a.rect(8,1,2,3,2); a.dot(9,2,6); a.rect(13,1,2,3,2); a.dot(13,2,6);
   a.ell(12.6,8.4,2.7,1.7,4); a.dot(8,8,4);
   a.dot(10,6,5); a.dot(13,6,5); a.dot(10,4,4); a.dot(13,4,4); a.dot(12,7,5); a.dot(15,7,5);
-},P('#e0913f','#b5622a','#fff1d6')));
+
+  if(sesame)for(const [x,y] of [[4,8],[7,7],[10,9],[5,10],[9,8],[12,4],[2,6],[11,3],[6,9]])a.dot(x,y,3);
+},pal));}
+const COATS={
+  aka:{name:'赤柴',spr:shibaSprites(P('#e0913f','#b5622a','#fff1d6')),start:'bone',perk:'ホネ投げで出発',lock:null},
+  kuro:{name:'黒柴',spr:shibaSprites(P('#4b3b36','#2a1e1a','#fff1d6',{5:'#0a0605'})),start:'bark',perk:'ワン!で出発・威力+15%',lock:{text:'3分生きのびる',ok:b=>b.time>=180}},
+  shiro:{name:'白柴',spr:shibaSprites(P('#fbf3e6','#d8c8b0','#ffffff')),start:'tail',perk:'しっぽボールで出発・HP自然回復',lock:{text:'合計1000匹たおす',ok:b=>(b.total||0)>=1000}},
+  goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',perk:'フリスビーで出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
+};
+let coat='aka';try{const c=localStorage.getItem('shibasurv-coat');if(c&&COATS[c])coat=c;}catch(e){}
+const SHIBA=COATS.aka.spr;
 const CHI=[0,1].map(f=>makeSprite(12,12,a=>{
   if(f===0){a.rect(3,9,1,3,3);a.rect(7,9,1,3,3);}else{a.rect(4,9,1,3,3);a.rect(6,9,1,3,3);}
   a.ell(5,8,3.6,2.2,2); a.dot(1,6,2); a.dot(1,5,2); a.dot(0,4,2);
@@ -193,8 +213,8 @@ const BARREL=makeSprite(8,8,a=>{a.ell(4,4,4.1,4.1,2);a.rect(0,2,8,1,3);a.rect(0,
 const BAG=makeSprite(8,9,a=>{a.ell(4,5.5,4,3.5,2);a.rect(3,0,2,3,3);a.dot(2,1,3);a.dot(5,1,3);a.dot(3,5,4);a.dot(5,6,4);},P('#7b6cf0','#4f40b8','#d6d0ff'));
 
 // title shiba
-{const t=document.getElementById('titleShiba');t.width=SHIBA[0].w;t.height=SHIBA[0].h;t.getContext('2d').drawImage(SHIBA[0].r,0,0);
- t.style.width=SHIBA[0].w*7+'px';t.style.height=SHIBA[0].h*7+'px';}
+function drawTitleShiba(){const t=document.getElementById('titleShiba'),s=COATS[coat].spr[0];t.width=s.w;t.height=s.h;const q=t.getContext('2d');q.clearRect(0,0,s.w,s.h);q.drawImage(s.r,0,0);
+ t.style.width=s.w*6+'px';t.style.height=s.h*6+'px';}
 
 // ---------- ground tiles ----------
 const TILE=24, TILES=[];
@@ -308,16 +328,16 @@ try{const b=JSON.parse(localStorage.getItem('shibasurv-best')||'null');if(b&&typ
 function saveBest(){try{localStorage.setItem('shibasurv-best',JSON.stringify(best));}catch(e){}}
 const BOSS_T=300;
 function newGame(){
-  G={T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
+  G={coat,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
-    w:{bone:1},pas:{},wt:{},tailA:0,
+    w:{[COATS[coat].start]:1},pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
 function xpNeed(l){return Math.floor(4+l*2.6+(l>15?(l-15)*3:0));}
 const pl=k=>G.pas[k]||0;
 const cdMul=()=>Math.pow(.92,pl('haste'));
-const pow=()=>1+.12*pl('power');
+const pow=()=>(1+.12*pl('power'))*(G.coat==='kuro'?1.15:1);
 const maxHp=()=>100+25*pl('hp');
 
 // ---------- spatial grid ----------
@@ -553,10 +573,10 @@ function update(dt){
   G.T+=dt;
   // player
   if(!p.dead){
-    const [ix,iy]=inputVec();const sp=55*(1+.1*pl('speed'));
+    const [ix,iy]=inputVec();const sp=55*(1+.1*pl('speed'))*(G.coat==='goma'?1.12:1);
     p.moving=ix||iy;if(p.moving){p.x+=ix*sp*dt;p.y+=iy*sp*dt;p.ang=Math.atan2(iy,ix);if(Math.abs(ix)>.15)p.face=ix>0?1:-1;p.anim+=dt*8;}
     p.inv=Math.max(0,p.inv-dt);
-    if(pl('regen'))p.hp=Math.min(maxHp(),p.hp+.3*pl('regen')*dt);
+    const rg=.3*pl('regen')+(G.coat==='shiro'?.6:0);if(rg)p.hp=Math.min(maxHp(),p.hp+rg*dt);
   }
   if(!G.won&&!p.dead)spawner(dt);
   if(G.boss&&!G.boss.dead&&!p.dead)bossAI(G.boss,dt);
@@ -642,10 +662,10 @@ function draw(){
   for(const u of list){
     if(u===p){
       if(state==='title')continue;
-      if(p.dead){const s=SHIBA[0];px.save();px.translate(Math.round(p.x-camX),Math.round(p.y-camY-6));px.rotate(Math.PI/2*p.face);px.drawImage(s.r,-s.w/2,-s.h/2);px.restore();continue;}
+      if(p.dead){const s=COATS[G.coat].spr[0];px.save();px.translate(Math.round(p.x-camX),Math.round(p.y-camY-6));px.rotate(Math.PI/2*p.face);px.drawImage(s.r,-s.w/2,-s.h/2);px.restore();continue;}
       shadow(p.x,p.y,12);
       if(p.inv>0&&((p.inv*20)|0)%2)continue;
-      const f=p.moving?((p.anim|0)&1):0;const bob=p.moving&&f?1:0;spr(SHIBA[f],p.x,p.y+1-bob,p.face<0,false);
+      const f=p.moving?((p.anim|0)&1):0;const bob=p.moving&&f?1:0;spr(COATS[G.coat].spr[f],p.x,p.y+1-bob,p.face<0,false);
       // hp bar
       const hw=16,hx=Math.round(p.x-camX-hw/2),hy=Math.round(p.y-camY+3);px.fillStyle=OUT;px.fillRect(hx-1,hy-1,hw+2,4);px.fillStyle='#5a3b2a';px.fillRect(hx,hy,hw,2);
       const fr=p.hp/maxHp();px.fillStyle=fr>.5?'#7be05a':fr>.25?'#ffd23f':'#ff5e57';px.fillRect(hx,hy,Math.ceil(hw*fr),2);
@@ -748,24 +768,39 @@ const $=id=>document.getElementById(id);
 function fmt(t){t=Math.floor(t);return `${(t/60)|0}分${String(t%60).padStart(2,'0')}秒`;}
 function showBest(){$('bestLine').textContent=best.time?`ベスト ${fmt(best.time)} ・ ${best.kills}匹 ・ ボス撃破 ${best.wins}回`:'';}
 showBest();
+function renderCoats(){
+  const box=$('coats');box.innerHTML='';
+  for(const k in COATS){const c=COATS[k],open=!c.lock||c.lock.ok(best);
+    const b=document.createElement('button');b.className='coat'+(open?'':' locked');b.id='coat-'+k;b.setAttribute('role','radio');b.setAttribute('aria-checked',String(k===coat));
+    const cv2=document.createElement('canvas');const sp=c.spr[0];cv2.style.width=sp.w*3+"px";cv2.style.height=sp.h*3+"px";cv2.width=sp.w;cv2.height=sp.h;cv2.getContext('2d').drawImage(sp.r,0,0);b.appendChild(cv2);
+    const nm=document.createElement('span');nm.textContent=c.name;b.appendChild(nm);
+    if(!open){const sm=document.createElement('small');sm.textContent=c.lock.text;b.appendChild(sm);b.disabled=true;}
+    b.addEventListener('click',()=>{coat=k;try{localStorage.setItem('shibasurv-coat',k);}catch(e){}renderCoats();});box.appendChild(b);}
+  if(COATS[coat].lock&&!COATS[coat].lock.ok(best))coat='aka';
+  $('perk').textContent=COATS[coat].perk;drawTitleShiba();
+}
+renderCoats();
 function start(){
-  initAudio();newGame();state='play';mOn=true;intense=0;mStep=0;if(ac)mNext=ac.currentTime+.05;
+  initAudio();if(COATS[coat].lock&&!COATS[coat].lock.ok(best))coat='aka';newGame();state='play';mOn=true;intense=0;mStep=0;if(ac)mNext=ac.currentTime+.05;
   $('title').hidden=true;$('over').hidden=true;$('pause').hidden=true;$('pauseBtn').hidden=false;lastT=performance.now();
   G.nums.push({x:0,y:-20,v:'いくぞ!',t:0,word:true});
 }
 function endGame(){
   if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;stick=null;
-  const win=G.won,t=Math.min(G.T,BOSS_T+999);
-  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win)best.wins++;saveBest();
+  const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
+  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win)best.wins++;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills;saveBest();
+  const fresh=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(best)&&!before.includes(k));
   $('overTitle').textContent=win?'ボスをたおした!':'やられた…';
   $('overStats').innerHTML=`<span>生きのびた</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
-  $('overBest').textContent=rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`;
+  $('overBest').textContent=(fresh.length?fresh.map(k=>COATS[k].name).join('と')+'が仲間になった! ':'')+(rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`);
+  renderCoats();
   $('over').hidden=false;showBest();
 }
 function openPause(){if(state!=='play')return;state='pause';stick=null;
   $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;$('pause').hidden=false;}
 $('startBtn').addEventListener('click',start);
 $('retryBtn').addEventListener('click',start);
+$('titleBtn').addEventListener('click',()=>{$('over').hidden=true;state='title';newGame();renderCoats();$('title').hidden=false;});
 $('pauseBtn').addEventListener('click',openPause);
 $('resumeBtn').addEventListener('click',()=>{$('pause').hidden=true;state='play';lastT=performance.now();});
 $('soundBtn').addEventListener('click',()=>{initAudio();setMute(!muted);});
