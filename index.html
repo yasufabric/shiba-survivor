@@ -68,6 +68,10 @@ p{margin:0;font-size:15px;line-height:1.6}
 .evos .row{display:grid;grid-template-columns:22px auto 1fr;gap:6px;align-items:center}
 .evos .sq{width:22px;height:22px;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;box-sizing:border-box}
 .evos .ok{color:#2f8a3a}.evos .no{opacity:.7}
+.modes{flex-wrap:wrap;justify-content:center}
+.mode.daily[aria-checked="true"]{background:#9fdcff}
+.daily-line{font-size:13px;line-height:1.5;background:var(--paper);border:2px solid var(--ink);padding:6px 10px;max-width:320px}
+.daily-line b{font-weight:400;color:#2a6fb0}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -107,6 +111,7 @@ p{margin:0;font-size:15px;line-height:1.6}
   <div class="coats" id="coats" role="radiogroup" aria-label="柴をえらぶ"></div>
   <p class="perk" id="perk"></p>
   <div class="modes" id="modes" role="radiogroup" aria-label="むずかしさ"></div>
+  <p class="daily-line" id="dailyLine" hidden></p>
   <button class="btn" id="startBtn">さんぽに出る</button>
   <button class="btn sub" id="bookBtn">しば手帳</button>
   <p class="best" id="bestLine" style="color:var(--paper);text-shadow:1px 1px 0 var(--ink)"></p>
@@ -212,7 +217,15 @@ const COATS={
   goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',startLv:2,perk:'フリスビーLv2で出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
 };
 const OPT={shake:!matchMedia('(prefers-reduced-motion: reduce)').matches,buzz:true};try{Object.assign(OPT,JSON.parse(localStorage.getItem('shibasurv-opt')||'{}'));}catch(e){}
-let diff='normal';try{const d=localStorage.getItem('shibasurv-diff');if(d==='hard')diff=d;}catch(e){}
+let diff='normal';try{const d=localStorage.getItem('shibasurv-diff');if(d==='hard'||d==='daily')diff=d;}catch(e){}
+const RULES=[
+  {id:'chi',name:'チワワまつり',d:'出てくるのはチワワだけ。そのかわり3倍かたい'},
+  {id:'bone2',name:'ホネ2倍デー',d:'ホネの経験値が2倍。犬は1.4倍かたい'},
+  {id:'fast',name:'はやあし世界',d:'犬が1.3倍速い。柴も1.2倍速い'},
+  {id:'glass',name:'ガラスの柴',d:'最大HPが半分。攻撃は1.6倍'},
+  {id:'evo',name:'進化びより',d:'引き直し5回、宝箱が25秒ごと'}];
+const DAY=Math.floor((Date.now()+9*3600e3)/86400e3);
+const TODAY=RULES[hash(DAY,77)%RULES.length];
 let coat='aka';try{const c=localStorage.getItem('shibasurv-coat');if(c&&COATS[c])coat=c;}catch(e){}
 const SHIBA=COATS.aka.spr;
 const CHI=[0,1].map(f=>makeSprite(12,12,a=>{
@@ -435,17 +448,17 @@ const STAMPS=[
   ['激','はげしい勝利','はげしいでボスに勝つ',(b,g)=>g.hard&&(g.won||g.endless)],
   ['夜','夜の散歩','エンドレスで10分まで',(b,g)=>g.endless&&g.T>=600]];
 function newGame(){
-  G={coat,hard:diff==='hard',T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
+  G={coat,hard:diff==='hard',rule:diff==='daily'?TODAY.id:null,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
-    w:{[COATS[coat].start]:COATS[coat].startLv||1},dmg:{},rerolls:2,pas:{},wt:{},tailA:0,
+    w:{[COATS[coat].start]:COATS[coat].startLv||1},dmg:{},rerolls:diff==='daily'&&TODAY.id==='evo'?5:2,pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],pops:[],slashes:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
 function xpNeed(l){if(l<=3)return [0,3,5,8][l];return Math.floor(4+l*2.6+(l>15?(l-15)*3:0));}
 const pl=k=>G.pas[k]||0;
 const cdMul=()=>Math.pow(.92,pl('haste'));
-const pow=()=>(1+.12*pl('power'))*(G.coat==='kuro'?1.15:1);
-const maxHp=()=>100+25*pl('hp');
+const pow=()=>(1+.12*pl('power'))*(G.coat==='kuro'?1.15:1)*(G.rule==='glass'?1.6:1);
+const maxHp=()=>(G.rule==='glass'?50:100)+25*pl('hp');
 
 // ---------- spatial grid ----------
 const CELL=24;let grid=new Map();
@@ -467,8 +480,8 @@ const KIND={
   dal:{spr:DAL,hp:5200,spd:25,r:12,dmg:24,xp:0}
 };
 function spawn(kind,x,y,opt){
-  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=(kind==='boss'?1:(1+G.T/95)*(1+Math.pow(ex,1.6)*.6))*(G.hard?1.6:1);
-  const e={kind,k,r:k.r,dm:(1+ex*.35)*(G.hard?1.3:1),sm:1+Math.min(.6,ex*.1),x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
+  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=(kind==='boss'?1:(1+G.T/95)*(1+Math.pow(ex,1.6)*.6)*(G.rule==='chi'?3:G.rule==='bone2'?1.4:1))*(G.hard?1.6:1);
+  const e={kind,k,r:k.r,dm:(1+ex*.35)*(G.hard?1.3:1),sm:(1+Math.min(.6,ex*.1))*(G.rule==='fast'?1.3:1),x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
   if(opt)Object.assign(e,opt);G.en.push(e);return e;
 }
 function edgePoint(){
@@ -483,11 +496,11 @@ function spawner(dt){
     G.spawnAcc+=rate*dt;
     while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length>=(G.endless?340:280))break;
       const wc=1,wg=T<15?.2:1,wb=T<70?0:Math.min(.7,(T-70)/150),wh=T<95?0:Math.min(.35,(T-95)/200),wp=T<175?0:Math.min(.25,(T-175)/200);const r=Math.random()*(wc+wg+wb+wh+wp);
-      const kind=r<wc?'chi':r<wc+wg?'corgi':r<wc+wg+wb?'bull':r<wc+wg+wb+wh?'husky':'pug';const [x,y]=edgePoint();spawn(kind,x,y);}
+      const kind=G.rule==='chi'?'chi':r<wc?'chi':r<wc+wg?'corgi':r<wc+wg+wb?'bull':r<wc+wg+wb+wh?'husky':'pug';const [x,y]=edgePoint();spawn(kind,x,y);}
   }else{
     G.spawnAcc+=3*dt;while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length<120){const [x,y]=edgePoint();spawn(Math.random()<.5?'chi':'corgi',x,y);}}
   }
-  if(T>=(G.nextTreat??30)){G.nextTreat=(G.nextTreat??30)+40;const a=Math.random()*Math.PI*2,r=150+Math.random()*60;{const it={type:'chest',x:G.p.x+Math.cos(a)*r,y:G.p.y+Math.sin(a)*r,t:0,far:true};pushOut(it,14);G.items.push(it);}}
+  if(T>=(G.nextTreat??(G.rule==='evo'?20:30))){G.nextTreat=(G.nextTreat??30)+(G.rule==='evo'?25:40);const a=Math.random()*Math.PI*2,r=150+Math.random()*60;{const it={type:'chest',x:G.p.x+Math.cos(a)*r,y:G.p.y+Math.sin(a)*r,t:0,far:true};pushOut(it,14);G.items.push(it);}}
   const ev=(t,fn)=>{if(T>=t&&!G.events.has(t)){G.events.add(t);fn();}};
   ev(2.5,()=>{const a=Math.random()*Math.PI*2;for(let i=0;i<7;i++){const r=120+i*9;spawn('chi',G.p.x+Math.cos(a+i*.12)*r,G.p.y+Math.sin(a+i*.12)*r);}});
   ev(55,()=>{banner('チワワに囲まれた!');ring('chi',22,135,4);});
@@ -542,7 +555,7 @@ function killEnemy(e){
   if(e.kind==='boss'&&G.endless){G.shake=10;G.hitstop=.15;SFX.win();banner('ボスをたおした!','#ffd23f');G.items.push({type:'chest',x:e.x,y:e.y,t:0});for(let i=0;i<20;i++)dropGem(e.x+(Math.random()-.5)*40,e.y+(Math.random()-.5)*40,5);return;}
   if(e.kind==='boss'){G.won=true;G.endT=2.2;G.shake=10;G.slow=.25;SFX.win();for(let i=0;i<20;i++)dropGem(e.x+(Math.random()-.5)*40,e.y+(Math.random()-.5)*40,5);return;}
   if(e.kind==='elite'){G.items.push({type:'chest',x:e.x,y:e.y,t:0});if(Math.random()<.5)G.items.push({type:'bag',x:e.x+10,y:e.y,t:0});return;}
-  dropGem(e.x,e.y,e.k.xp+(G.T>=150?1:0));
+  dropGem(e.x,e.y,(e.k.xp+(G.T>=150?1:0)+(G.rule==='chi'?1:0))*(G.rule==='bone2'?2:1));
   const r=Math.random();
   if(r<.011)G.items.push({type:'meat',x:e.x,y:e.y,t:0});
   else if(r<.0135)G.items.push({type:'bag',x:e.x,y:e.y,t:0});
@@ -721,7 +734,7 @@ function update(dt){
   G.T+=dt;
   // player
   if(!p.dead){
-    const [ix,iy]=inputVec();const sp=55*(1+.1*pl('speed'))*(G.coat==='goma'?1.12:1);
+    const [ix,iy]=inputVec();const sp=55*(1+.1*pl('speed'))*(G.coat==='goma'?1.12:1)*(G.rule==='fast'?1.2:1);
     p.moving=ix||iy;if(p.moving){G.moved=(G.moved||0)+dt;p.x+=ix*sp*dt;p.y+=iy*sp*dt;p.ang=Math.atan2(iy,ix);if(Math.abs(ix)>.15)p.face=ix>0?1:-1;p.anim+=dt*8;}
     p.inv=Math.max(0,p.inv-dt);
     if(p.hp/maxHp()<.3){G.beatT=(G.beatT||0)-dt;if(G.beatT<=0){G.beatT=p.hp/maxHp()<.15?.6:.9;SFX.beat();}}else G.beatT=0;
@@ -964,12 +977,14 @@ function renderCoats(){
     if(!open){const sm=document.createElement('small');sm.textContent=c.lock.text;b.appendChild(sm);b.disabled=true;}
     b.addEventListener('click',()=>{coat=k;try{localStorage.setItem('shibasurv-coat',k);}catch(e){}renderCoats();});box.appendChild(b);}
   if(COATS[coat].lock&&!COATS[coat].lock.ok(best))coat='aka';
-  const hardOpen=best.wins>=1;if(!hardOpen)diff='normal';
+  const hardOpen=best.wins>=1;if(!hardOpen&&diff==='hard')diff='normal';
   $('modes').innerHTML='';
-  for(const [k,label] of [['normal','ふつう'],['hard',hardOpen?'はげしい':'はげしい（未解放）']]){const b=document.createElement('button');b.className='mode'+(k==='hard'?' hard':'');b.id='mode-'+k;b.textContent=label;
+  for(const [k,label] of [['normal','ふつう'],['hard',hardOpen?'はげしい':'はげしい（未解放）'],['daily','きょうの散歩']]){const b=document.createElement('button');b.className='mode'+(k==='hard'?' hard':k==='daily'?' daily':'');b.id='mode-'+k;b.textContent=label;
     b.setAttribute('role','radio');b.setAttribute('aria-checked',String(diff===k));if(k==='hard'&&!hardOpen)b.disabled=true;
     b.addEventListener('click',()=>{diff=k;try{localStorage.setItem('shibasurv-diff',k);}catch(e){}renderCoats();});$('modes').appendChild(b);}
   $('perk').textContent=COATS[coat].perk;drawTitleShiba();
+  const db=best.daily&&best.daily.day===DAY?best.daily:null;
+  $('dailyLine').hidden=diff!=='daily';$('dailyLine').innerHTML=`<b>${TODAY.name}</b> ${TODAY.d}`+(db?`<br>きょうのベスト ${fmt(db.time)}・${db.kills}匹${db.won?'・ボス撃破':''}`:'');
 }
 renderCoats();
 function start(){
@@ -980,10 +995,11 @@ function start(){
 function endGame(){
   if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;stick=null;
   const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
-  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win&&!G.endless){best.wins++;if(G.hard)best.hardWins=(best.hardWins||0)+1;}if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
+  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(G.rule){const db=best.daily&&best.daily.day===DAY?best.daily:{day:DAY,time:0,kills:0,won:false};if(G.T>db.time)db.time=G.T;if(G.kills>db.kills)db.kills=G.kills;if(win||G.endless)db.won=true;best.daily=db;}
+  if(win&&!G.endless){best.wins++;if(G.hard)best.hardWins=(best.hardWins||0)+1;}if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
   best.st=best.st||{};const newSt=STAMPS.filter(([c,n,d,ok])=>!best.st[c]&&ok(best,G));for(const st of newSt)best.st[st[0]]=1;saveBest();
   const fresh=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(best)&&!before.includes(k));
-  $('overTitle').textContent=(G.hard?'【はげしい】':'')+(G.endless?'さんぽ終了':win?'ボスをたおした!':'やられた…');
+  $('overTitle').textContent=(G.hard?'【はげしい】':G.rule?'【'+TODAY.name+'】':'')+(G.endless?'さんぽ終了':win?'ボスをたおした!':'やられた…');
   $('moreBtn').hidden=!(win&&!G.endless);
   $('overStats').innerHTML=`<span>生きのびた</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
   $('overBest').textContent=(fresh.length?fresh.map(k=>COATS[k].name).join('と')+'が仲間になった! ':'')+(rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`);
@@ -993,7 +1009,7 @@ function endGame(){
   $('dmgBars').innerHTML=rows.length?'<div class="cap">技ごとのダメージ</div>'+rows.map(([k,v])=>{const d=WEAP[k],ev=G.w[k]===6;
     return `<div class="row"><span class="sq" style="background:${ev?'#ffd23f':d.col}">${ev?d.evo.ch:d.ch}</span><span>${ev?d.evo.name:d.name}</span><span class="bar" style="width:${Math.max(2,Math.round(v/rows[0][1]*100))}%"></span></div>`;}).join(''):'';
   const top=rows[0]?(G.w[rows[0][0]]===6?WEAP[rows[0][0]].evo.name:WEAP[rows[0][0]].name):'';
-  G.shareText=`しばサバイバー${G.hard?'【はげしい】':''}\n${COATS[G.coat].name}で${fmt(G.T)}生きのびた${win||G.endless?'（ボス撃破）':''}\nLv${G.lv}・${G.kills}匹${top?'・主力: '+top:''}\nhttps://yasufabric.github.io/shiba-survivor/`;
+  G.shareText=`しばサバイバー${G.hard?'【はげしい】':G.rule?'【きょうの散歩: '+TODAY.name+'】':''}\n${COATS[G.coat].name}で${fmt(G.T)}生きのびた${win||G.endless?'（ボス撃破）':''}\nLv${G.lv}・${G.kills}匹${top?'・主力: '+top:''}\nhttps://yasufabric.github.io/shiba-survivor/`;
   $('copyBtn').textContent='結果をコピー';
   $('over').hidden=false;showBest();
 }
