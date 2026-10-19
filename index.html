@@ -337,7 +337,10 @@ const WEAP={
     evo:{pas:'haste',name:'肉球メテオ',ch:'隕',d:'特大の肉球が7つ降りそそぐ'}},
   fris:{name:'フリスビー',ch:'盤',col:'#ff6e66',d:['進む方向に投げて戻ってくる。全部つらぬく','威力アップ','2枚投げる','遠くまで飛ぶ','3枚・高速'],
     cd:[2.2,2,1.8,1.6,1.4,1.2],n:[1,1,2,2,3,6],dmg:[20,25,30,36,44,60],range:[80,85,90,110,120,135],
-    evo:{pas:'magnet',name:'フリスビー乱舞',ch:'舞',d:'6枚を全方向に投げて戻す'}}
+    evo:{pas:'magnet',name:'フリスビー乱舞',ch:'舞',d:'6枚を全方向に投げて戻す'}},
+  lead:{name:'リードぶんぶん',ch:'紐',col:'#e2574c',d:['近い犬のいる側へリードを振りまわす','威力アップ','左右両方に振る','長くなる','威力・速さアップ'],
+    cd:[1.35,1.25,1.15,1.05,.95,.85],n:[1,1,2,2,2,1],dmg:[16,21,24,30,38,46],len:[38,42,46,54,60,72],
+    evo:{pas:'armor',name:'リード大旋風',ch:'嵐',d:'ぐるりと一回転して周りをまとめてはたく'}}
 };
 const PAS={
   speed:{name:'はやあし',ch:'足',col:'#7fd0ff',d:'移動速度 +10%'},
@@ -345,7 +348,8 @@ const PAS={
   regen:{name:'おやつ',ch:'菓',col:'#f7c29a',d:'HPがじわじわ回復'},
   magnet:{name:'はなが利く',ch:'鼻',col:'#c6b6ff',d:'ホネを拾う範囲 +30%'},
   power:{name:'きんトレ',ch:'筋',col:'#ff9a7a',d:'全攻撃の威力 +12%'},
-  haste:{name:'はやぐい',ch:'速',col:'#ffe26b',d:'全攻撃の間隔 -8%'}
+  haste:{name:'はやぐい',ch:'速',col:'#ffe26b',d:'全攻撃の間隔 -8%'},
+  armor:{name:'くびわ',ch:'輪',col:'#9ad0a8',d:'うけるダメージ -1'}
 };
 
 // ---------- game state ----------
@@ -357,7 +361,7 @@ function newGame(){
   G={coat,hard:diff==='hard',T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
     w:{[COATS[coat].start]:1},dmg:{},pas:{},wt:{},tailA:0,
-    en:[],proj:[],hz:[],pops:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
+    en:[],proj:[],hz:[],pops:[],slashes:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
 function xpNeed(l){if(l<=3)return [0,3,5,8][l];return Math.floor(4+l*2.6+(l>15?(l-15)*3:0));}
@@ -498,6 +502,12 @@ function weapons(dt){
       for(let i=0;i<def.n[L];i++){let x,y;if(cand.length){const e=cand[(Math.random()*cand.length)|0];x=e.x;y=e.y;}else{x=p.x+(Math.random()-.5)*W*.7;y=p.y+(Math.random()-.5)*H*.5;}
         G.paws.push({x,y,t:-i*.12,fall:.38,R:def.R[L],dmg:def.dmg[L]});}
     }
+    if(k==='lead'&&G.wt[k]<=0){
+      G.wt[k]=def.cd[L]*cm;SFX.throw();const len=def.len[L];
+      if(L===5){G.slashes.push({x:p.x,y:p.y-4,dir:0,len,t:0,ring:true});query(p.x,p.y-4,len,(e,dx,dy)=>hurtEnemy(e,def.dmg[L],dx,dy,90,'lead'));}
+      else{const ne=nearest(1,len+30)[0],first=ne?(ne.x>=p.x?1:-1):p.face;for(let i=0;i<def.n[L];i++){const dir=i===0?first:-first;G.slashes.push({x:p.x,y:p.y-4,dir,len,t:-i*.08});
+        for(const e of G.en){if(e.dead)continue;const dx=(e.x-p.x)*dir,dy=e.y-e.r-(p.y-4);if(dx>-4&&dx<len+e.r&&Math.abs(dy)<10+e.r)hurtEnemy(e,def.dmg[L],dir,0,80,'lead');}}}
+    }
     if(k==='fris'&&G.wt[k]<=0){
       G.wt[k]=def.cd[L]*cm;SFX.throw();const n=def.n[L];
       for(let i=0;i<n;i++){const a=L===5?p.ang+i/n*Math.PI*2:p.ang+(i-(n-1)/2)*.55;G.proj.push({type:'fris',a,t:0,dur:1.15,range:def.range[L],dmg:def.dmg[L],x:p.x,y:p.y});}
@@ -527,6 +537,7 @@ function updateProj(dt){
   }
   G.paws=G.paws.filter(w=>w.t<w.fall+.45);
   for(const r of G.rings)r.t+=dt;G.rings=G.rings.filter(r=>r.t<.32);
+  for(const q of G.slashes)q.t+=dt;G.slashes=G.slashes.filter(q=>q.t<.2);
   for(const q of G.pops)q.t+=dt;G.pops=G.pops.filter(q=>q.t<(q.big?.5:.18));
 }
 
@@ -619,7 +630,7 @@ function update(dt){
   if(!G.won&&!p.dead)spawner(dt);
   if(G.boss&&!G.boss.dead&&!p.dead)bossAI(G.boss,dt);
   for(const h of G.hz){h.x+=h.vx*dt;h.y+=h.vy*dt;h.life-=dt;h.spin+=dt;
-    if(!p.dead&&!G.won&&p.inv<=0&&Math.hypot(h.x-p.x,h.y-(p.y-4))<h.r+4){p.hp-=h.dmg;p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();h.life=0;if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}}
+    if(!p.dead&&!G.won&&p.inv<=0&&Math.hypot(h.x-p.x,h.y-(p.y-4))<h.r+4){p.hp-=Math.max(1,h.dmg-pl('armor'));p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();h.life=0;if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}}
   G.hz=G.hz.filter(h=>h.life>0&&!G.won);
   buildGrid();
   // enemies
@@ -647,7 +658,7 @@ function update(dt){
   // contact damage
   if(!p.dead&&!G.won&&p.inv<=0){
     let worst=0;query(p.x,p.y-4,4,(e)=>{worst=Math.max(worst,Math.round(e.k.dmg*e.dm));});
-    if(worst){p.hp-=worst;p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();G.hitstop=.05;buzz(25);
+    if(worst){p.hp-=Math.max(1,worst-pl('armor'));p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();G.hitstop=.05;buzz(25);
       for(let i=0;i<6;i++)addFx(p.x,p.y-4,(Math.random()-.5)*60,(Math.random()-.5)*60,.3,'#ff5e57',2);
       if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}
   }
@@ -738,6 +749,12 @@ function draw(){
   for(const q of G.pops){const life=q.big?.5:.18,k=q.t/life,sw=1+k*.6,sh=1-k*.7,img=q.f<0?q.s.fl:q.s.fr;
     px.globalAlpha=1-k;px.drawImage(img,Math.round(q.x-camX-q.s.w*sw/2),Math.round(q.y-camY-q.s.h*sh),Math.round(q.s.w*sw),Math.max(1,Math.round(q.s.h*sh)));px.globalAlpha=1;
     if(q.big)pxRing(q.x,q.y-6,10+k*50,'#ffd23f',.7);}
+  // leash swings
+  for(const q of G.slashes){if(q.t<0)continue;const k=q.t/.2;px.globalAlpha=1-k;
+    if(q.ring){pxRing(q.x,q.y,q.len*(.5+k*.5),'#e2574c',.8);pxRing(q.x,q.y,q.len*(.45+k*.5),'#ffb3a6',.8);}
+    else{const x0=q.x-camX,y0=q.y-camY;for(let i=0;i<=q.len;i+=2){const yy=Math.sin(i/q.len*Math.PI)*-7*(1-k)+Math.sin(i*.4+q.t*40)*1.2;
+      px.fillStyle=OUT;px.fillRect(Math.round(x0+q.dir*i),Math.round(y0+yy)-1,2,4);px.fillStyle=i%6<3?'#e2574c':'#ffb3a6';px.fillRect(Math.round(x0+q.dir*i),Math.round(y0+yy),2,2);}}
+    px.globalAlpha=1;}
   // bark rings
   for(const r of G.rings){const k=r.t/.32;pxRing(r.x,r.y,r.R*(.3+.7*k),k<.5?'#ffffff':'#ffd23f',.8);}
   // time of day: afternoon -> sunset before the boss -> night in endless
