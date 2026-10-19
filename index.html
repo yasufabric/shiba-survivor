@@ -625,12 +625,12 @@ function draw(){
       if(p.dead){const s=SHIBA[0];px.save();px.translate(Math.round(p.x-camX),Math.round(p.y-camY-6));px.rotate(Math.PI/2*p.face);px.drawImage(s.r,-s.w/2,-s.h/2);px.restore();continue;}
       shadow(p.x,p.y,12);
       if(p.inv>0&&((p.inv*20)|0)%2)continue;
-      const f=p.moving?((p.anim|0)%2):0;const bob=p.moving&&f?1:0;spr(SHIBA[f],p.x,p.y+1-bob,p.face<0,false);
+      const f=p.moving?((p.anim|0)&1):0;const bob=p.moving&&f?1:0;spr(SHIBA[f],p.x,p.y+1-bob,p.face<0,false);
       // hp bar
       const hw=16,hx=Math.round(p.x-camX-hw/2),hy=Math.round(p.y-camY+3);px.fillStyle=OUT;px.fillRect(hx-1,hy-1,hw+2,4);px.fillStyle='#5a3b2a';px.fillRect(hx,hy,hw,2);
       const fr=p.hp/maxHp();px.fillStyle=fr>.5?'#7be05a':fr>.25?'#ffd23f':'#ff5e57';px.fillRect(hx,hy,Math.ceil(hw*fr),2);
     }else{
-      const s=u.k.spr[(u.anim|0)%2];shadow(u.x,u.y,u.kind==='boss'?24:Math.round(s.w*.6));
+      const s=u.k.spr[(u.anim|0)&1];shadow(u.x,u.y,u.kind==='boss'?24:Math.round(s.w*.6));
       spr(s,u.x,u.y+1,u.face<0,u.flash>0);
       if(u.slowT>0&&((G.T*8)|0)%3===0){px.fillStyle='rgba(158,224,106,.8)';px.fillRect(Math.round(u.x-camX-2),Math.round(u.y-camY-s.h-1),2,2);}
       if(u.kind==='elite'){const hw=14,hx=Math.round(u.x-camX-hw/2),hy=Math.round(u.y-camY+3);px.fillStyle=OUT;px.fillRect(hx-1,hy-1,hw+2,3);px.fillStyle='#c6b6ff';px.fillRect(hx,hy,Math.ceil(hw*u.hp/u.max),1);}
@@ -743,7 +743,7 @@ let lastT=performance.now();
 newGame(); // idle world behind title
 document.fonts&&document.fonts.ready.then(()=>{});
 function frame(now){
-  const dt=Math.min(.033,(now-lastT)/1000);lastT=now;
+  const dt=Math.max(0,Math.min(.033,(now-lastT)/1000));lastT=Math.max(lastT,now);
   if(state==='play')update(dt);
   else if(state==='title'){G.T+=dt;G.p.moving=true;G.p.anim+=dt*8;G.p.x+=dt*30;G.p.face=1;}
   music();
