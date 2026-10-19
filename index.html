@@ -312,22 +312,22 @@ setMute(muted);
 // ---------- upgrades ----------
 const WEAP={
   bone:{name:'ホネ投げ',ch:'骨',col:'#fff4dc',d:['いちばん近い犬にホネを投げる','威力アップ','2本投げる','つらぬく','3本・速射・大つらぬき'],
-    cd:[.9,.85,.8,.75,.65,.5],n:[1,1,2,2,3,8],dmg:[11,15,15,18,23,30],pierce:[1,1,1,2,4,99],
+    cd:[.9,.85,.8,.75,.65,.5],n:[1,1,2,2,3,8],dmg:[11,15,15,18,23,24],pierce:[1,1,1,2,4,99],
     evo:{pas:'power',name:'ホネ乱れ投げ',ch:'乱',d:'全方向にホネを投げ続ける。全部つらぬく'}},
   tail:{name:'しっぽボール',ch:'球',col:'#d8f04a',d:['ボールが体のまわりを回る','ボール2個','威力・回転アップ','ボール3個','ボール4個・大回転'],
-    n:[1,2,2,3,4,6],dmg:[8,9,12,13,17,26],rad:[24,26,28,30,34,40],spd:[3,3.2,3.6,3.8,4.4,5.2],
+    n:[1,2,2,3,4,6],dmg:[14,18,24,28,36,52],rad:[30,32,36,40,44,56],spd:[3,3.2,3.6,3.8,4.4,5.2],
     evo:{pas:'speed',name:'しっぽ大回転',ch:'旋',d:'ボール6個が大きく高速で回る'}},
   bark:{name:'ワン!',ch:'吠',col:'#ffb35c',d:['ほえて周りの犬をふっとばす','範囲アップ','威力アップ・連発','範囲アップ','大ボエ!'],
-    cd:[3.1,2.8,2.4,2.2,1.8,2.2],R:[38,46,50,58,70,240],dmg:[12,16,22,26,34,48],
+    cd:[2.8,2.5,2.2,2,1.7,2],R:[40,48,52,60,72,240],dmg:[16,22,30,38,48,70],
     evo:{pas:'hp',name:'遠吠え',ch:'轟',d:'画面じゅうの犬をまとめてふっとばす'}},
   fart:{name:'おなら',ch:'屁',col:'#9ee06a',d:['くさい雲で周りの犬をじわじわ削り、足を遅くする','範囲アップ','威力アップ','範囲アップ','最終兵器'],
-    R:[20,25,28,33,40,58],dmg:[3,4,6,7,10,15],
+    R:[28,32,38,44,52,72],dmg:[6,8,11,14,18,28],
     evo:{pas:'regen',name:'最終おなら',ch:'臭',d:'巨大なくさい雲。近づく犬はほぼ止まる'}},
   paw:{name:'肉球スタンプ',ch:'肉',col:'#ff8fb1',d:['空から巨大な肉球が落ちてくる','2つ落とす','威力アップ','3つ落とす','4つ・特大'],
-    cd:[2.2,2,1.8,1.6,1.35,1.1],n:[1,2,2,3,4,7],dmg:[26,30,40,46,60,80],R:[15,16,18,19,24,30],
+    cd:[2.4,2.2,2,1.8,1.6,1.25],n:[1,2,2,3,4,7],dmg:[26,30,40,46,52,70],R:[15,16,18,19,24,30],
     evo:{pas:'haste',name:'肉球メテオ',ch:'隕',d:'特大の肉球が7つ降りそそぐ'}},
   fris:{name:'フリスビー',ch:'盤',col:'#ff6e66',d:['進む方向に投げて戻ってくる。全部つらぬく','威力アップ','2枚投げる','遠くまで飛ぶ','3枚・高速'],
-    cd:[2.4,2.2,2,1.8,1.5,1.3],n:[1,1,2,2,3,6],dmg:[15,19,21,25,32,42],range:[80,85,90,110,120,135],
+    cd:[2.2,2,1.8,1.6,1.4,1.2],n:[1,1,2,2,3,6],dmg:[20,25,30,36,44,60],range:[80,85,90,110,120,135],
     evo:{pas:'magnet',name:'フリスビー乱舞',ch:'舞',d:'6枚を全方向に投げて戻す'}}
 };
 const PAS={
@@ -375,7 +375,7 @@ const KIND={
   boss:{spr:BOSS,hp:5200,spd:19,r:13,dmg:26,xp:0}
 };
 function spawn(kind,x,y,opt){
-  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=kind==='boss'?1:(1+G.T/150)*(1+Math.pow(ex,1.6)*.6);
+  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=kind==='boss'?1:(1+G.T/95)*(1+Math.pow(ex,1.6)*.6);
   const e={kind,k,r:k.r,dm:1+ex*.35,sm:1+Math.min(.6,ex*.1),x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
   if(opt)Object.assign(e,opt);G.en.push(e);return e;
 }
@@ -387,7 +387,7 @@ function spawner(dt){
   const T=G.T;
   if(G.endless&&T>=G.nextBoss&&(!G.boss||G.boss.dead)){G.nextBoss=T+150;G.bossN=(G.bossN||1)+1;banner(`ボス ${G.bossN}体目!`,'#ff7a7a');const [x,y]=edgePoint();G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv)*(1+.6*(G.bossN-1));SFX.boss();G.shake=6;}
   if(!G.boss||G.boss.dead){
-    const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(13,.6+T*.04)*(T>=BOSS_T?.45:1);
+    const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(15,.6+T*.045)*(T>=BOSS_T?.45:1);
     G.spawnAcc+=rate*dt;
     while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length>=(G.endless?340:280))break;
       const wc=1,wg=T<15?.2:1,wb=T<70?0:Math.min(.7,(T-70)/150),wh=T<95?0:Math.min(.35,(T-95)/200);const r=Math.random()*(wc+wg+wb+wh);
@@ -471,7 +471,7 @@ function weapons(dt){
     if(k==='tail'){
       G.tailA+=def.spd[L]*dt;const n=def.n[L];
       for(let i=0;i<n;i++){const a=G.tailA+i/n*Math.PI*2,bx=p.x+Math.cos(a)*def.rad[L],by=p.y-3+Math.sin(a)*def.rad[L]*.8;
-        query(bx,by,4,(e,dx,dy)=>{if(G.T-e.hT>.42){e.hT=G.T;hurtEnemy(e,def.dmg[L],e.x-p.x,e.y-p.y,70,'tail');}});}
+        query(bx,by,4,(e,dx,dy)=>{if(G.T-e.hT>.3){e.hT=G.T;hurtEnemy(e,def.dmg[L],e.x-p.x,e.y-p.y,70,'tail');}});}
     }
     if(k==='bark'&&G.wt[k]<=0){
       G.wt[k]=def.cd[L]*cm;const R=def.R[L];SFX.bark();G.shake=Math.max(G.shake,1.5);
