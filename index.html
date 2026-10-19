@@ -301,12 +301,14 @@ const ROOTS=[0,-4,3,-2],PENTA=[0,3,5,7,10,12,15];
 function music(){
   if(!ac||!mOn)return;
   if(mNext<ac.currentTime)mNext=ac.currentTime+.05;
-  const e=intense?.17:.2;
+  const ph=!G||state==='title'?0:G.endless?3:intense?2:G.T>150?1:0;
+  const e=[.21,.19,.165,.16][ph],shift=[0,2,-3,-1][ph];
   while(mNext<ac.currentTime+.15){
-    const s=mStep%32,bar=(mStep>>3)&3,root=110*Math.pow(2,ROOTS[bar]/12);
+    const s=mStep%32,bar=(mStep>>3)&3,root=110*Math.pow(2,(ROOTS[bar]+shift)/12);
     if(s%2===0)tone(root*(s%4===0?1:2),.16,'triangle',.22,0,mNext,musBus);
     if(s%2===1)noise(.03,.05,7000,mNext,musBus);
-    if(intense&&s%4===0)noise(.06,.09,180,mNext,musBus);
+    if(ph>=1&&s%4===0)noise(.06,ph>=2?.09:.05,180,mNext,musBus);
+    if(ph>=2&&s%8===4)noise(.08,.07,1400,mNext,musBus);
     const hz=hash(mStep>>1&63,7)%7;
     if((hash(mStep&63,3)%3)!==0)tone(root*4*Math.pow(2,PENTA[hz]/12)/2,.11,'square',.045,0,mNext,musBus);
     mNext+=e;mStep++;
@@ -587,6 +589,7 @@ const keys={};
 addEventListener('keydown',e=>{keys[e.key]=true;if(e.key==='Escape'&&state==='play')openPause();});
 addEventListener('keyup',e=>{keys[e.key]=false;});
 let stick=null;
+for(const ev of ['touchend','click','keydown'])addEventListener(ev,()=>initAudio(),{passive:true});
 cv.addEventListener('pointerdown',e=>{initAudio();if(state!=='play')return;if(stick)return;stick={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId);}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(stick&&e.pointerId===stick.id){stick.x=e.clientX;stick.y=e.clientY;
   const dx=stick.x-stick.ox,dy=stick.y-stick.oy,l=Math.hypot(dx,dy),M=46;if(l>M){stick.ox=stick.x-dx/l*M;stick.oy=stick.y-dy/l*M;}}});
