@@ -30,6 +30,7 @@ h1 small{display:block;font-size:16px;margin-bottom:8px;color:var(--sun);text-sh
 h2{margin:0;font-size:28px;font-weight:400}
 p{margin:0;font-size:15px;line-height:1.6}
 .btn{font-family:var(--font);font-size:22px;color:var(--ink);background:var(--tan);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 28px;cursor:pointer;min-width:180px}
+.panel .btn.sub{width:min(240px,100%)}
 .btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:0 5px 0 var(--ink)}
 .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 .btn.sub{background:var(--paper);font-size:17px;padding:8px 20px;min-width:150px}
@@ -126,6 +127,8 @@ p{margin:0;font-size:15px;line-height:1.6}
     <div class="stats" id="pauseStats"></div>
     <button class="btn" id="resumeBtn">つづける</button>
     <button class="btn sub" id="soundBtn">おと: ON</button>
+    <button class="btn sub" id="shakeBtn">画面ゆれ: ON</button>
+    <button class="btn sub" id="buzzBtn">ふるえ: ON</button>
     <button class="btn sub" id="quitBtn">さんぽをやめる</button>
   </div>
 </div>
@@ -201,6 +204,7 @@ const COATS={
   shiro:{name:'白柴',spr:shibaSprites(P('#fbf3e6','#d8c8b0','#ffffff')),start:'tail',perk:'しっぽボールで出発・HP自然回復',lock:{text:'合計1000匹たおす',ok:b=>(b.total||0)>=1000}},
   goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',perk:'フリスビーで出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
 };
+const OPT={shake:!matchMedia('(prefers-reduced-motion: reduce)').matches,buzz:true};try{Object.assign(OPT,JSON.parse(localStorage.getItem('shibasurv-opt')||'{}'));}catch(e){}
 let diff='normal';try{const d=localStorage.getItem('shibasurv-diff');if(d==='hard')diff=d;}catch(e){}
 let coat='aka';try{const c=localStorage.getItem('shibasurv-coat');if(c&&COATS[c])coat=c;}catch(e){}
 const SHIBA=COATS.aka.spr;
@@ -625,7 +629,7 @@ function evolveFx(name){
   for(let i=0;i<36;i++){const a=i/36*Math.PI*2;addFx(G.p.x,G.p.y-6,Math.cos(a)*110,Math.sin(a)*110,.6,i%2?'#ffd23f':'#fff4dc',3);}
 }
 function powerBurst(){const p=G.p;for(let i=0;i<20;i++){const a=i/20*Math.PI*2;addFx(p.x,p.y-6,Math.cos(a)*80,Math.sin(a)*60,.4,i%2?'#ffd23f':'#fff4dc',2);}G.rings.push({x:p.x,y:p.y-4,R:30,t:0});buzz(15);}
-function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+function buzz(ms){if(!OPT.buzz)return;try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 function chestReward(){
   const owned=Object.keys(G.w).filter(k=>G.w[k]<5);
   const evo=Object.keys(G.w).find(k=>G.w[k]===5&&pl(WEAP[k].evo.pas));
@@ -736,7 +740,7 @@ function shadow(x,y,w){px.fillStyle='rgba(43,26,18,.22)';px.fillRect(Math.round(
 function pxRing(x,y,R,c,ry){px.fillStyle=c;const n=Math.max(16,R*2.2|0);for(let i=0;i<n;i++){const a=i/n*Math.PI*2;px.fillRect(Math.round(x-camX+Math.cos(a)*R),Math.round(y-camY+Math.sin(a)*R*(ry||1)),2,2);}}
 function draw(){
   const p=G.p;
-  const sx=G.shake?(Math.random()-.5)*G.shake*2:0,sy=G.shake?(Math.random()-.5)*G.shake*2:0;
+  const sk=OPT.shake?G.shake:0,sx=sk?(Math.random()-.5)*sk*2:0,sy=sk?(Math.random()-.5)*sk*2:0;
   camX=Math.round(p.x-W/2+sx);camY=Math.round(p.y-H/2+sy);
   // ground
   const tx0=Math.floor(camX/TILE),ty0=Math.floor(camY/TILE);
@@ -939,6 +943,10 @@ $('titleBtn').addEventListener('click',()=>{$('over').hidden=true;state='title';
 $('pauseBtn').addEventListener('click',openPause);
 $('resumeBtn').addEventListener('click',()=>{$('pause').hidden=true;state='play';lastT=performance.now();});
 $('soundBtn').addEventListener('click',()=>{initAudio();setMute(!muted);});
+function renderOpts(){$('shakeBtn').textContent='画面ゆれ: '+(OPT.shake?'ON':'OFF');$('buzzBtn').textContent='ふるえ: '+(OPT.buzz?'ON':'OFF');try{localStorage.setItem('shibasurv-opt',JSON.stringify(OPT));}catch(e){}}
+$('shakeBtn').addEventListener('click',()=>{OPT.shake=!OPT.shake;renderOpts();});
+$('buzzBtn').addEventListener('click',()=>{OPT.buzz=!OPT.buzz;renderOpts();});
+renderOpts();
 $('quitBtn').addEventListener('click',()=>{$('pause').hidden=true;G.p.dead=1;state='play';G.endT=0;endGame();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')openPause();});
 
