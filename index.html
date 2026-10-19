@@ -101,6 +101,7 @@ p{margin:0;font-size:15px;line-height:1.6}
     <div class="stats" id="overStats"></div>
     <div class="dmgbars" id="dmgBars"></div>
     <p class="best" id="overBest"></p>
+    <button class="btn" id="moreBtn" hidden>まだ散歩する</button>
     <button class="btn" id="retryBtn">もう一回</button>
     <button class="btn sub" id="titleBtn">柴をえらびなおす</button>
   </div>
@@ -371,8 +372,8 @@ const KIND={
   boss:{spr:BOSS,hp:5200,spd:19,r:13,dmg:26,xp:0}
 };
 function spawn(kind,x,y,opt){
-  const k=KIND[kind],sc=kind==='boss'?1:1+G.T/150;
-  const e={kind,k,r:k.r,x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
+  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=kind==='boss'?1:(1+G.T/150)*(1+Math.pow(ex,1.6)*.6);
+  const e={kind,k,r:k.r,dm:1+ex*.35,sm:1+Math.min(.6,ex*.1),x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
   if(opt)Object.assign(e,opt);G.en.push(e);return e;
 }
 function edgePoint(){
@@ -381,10 +382,11 @@ function edgePoint(){
 }
 function spawner(dt){
   const T=G.T;
+  if(G.endless&&T>=G.nextBoss&&(!G.boss||G.boss.dead)){G.nextBoss=T+150;G.bossN=(G.bossN||1)+1;banner(`ボス ${G.bossN}体目!`,'#ff7a7a');const [x,y]=edgePoint();G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv)*(1+.6*(G.bossN-1));SFX.boss();G.shake=6;}
   if(!G.boss||G.boss.dead){
-    const rate=Math.min(13,.6+T*.04)*(T>=BOSS_T?.45:1);
+    const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(13,.6+T*.04)*(T>=BOSS_T?.45:1);
     G.spawnAcc+=rate*dt;
-    while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length>=280)break;
+    while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length>=(G.endless?340:280))break;
       const wc=1,wg=T<15?.2:1,wb=T<70?0:Math.min(.7,(T-70)/150),wh=T<95?0:Math.min(.35,(T-95)/200);const r=Math.random()*(wc+wg+wb+wh);
       const kind=r<wc?'chi':r<wc+wg?'corgi':r<wc+wg+wb?'bull':'husky';const [x,y]=edgePoint();spawn(kind,x,y);}
   }else{
@@ -431,6 +433,7 @@ function killEnemy(e){
   if(e.kind==='elite'){G.hitstop=.09;G.shake=Math.max(G.shake,5);buzz(40);}
   const n=e.kind==='boss'?30:e.kind==='elite'?14:6;
   for(let i=0;i<n;i++)addFx(e.x,e.y,(Math.random()-.5)*90,(Math.random()-.5)*90-20,.35+Math.random()*.3,i%3?'#fff4dc':'#ffd23f',e.kind==='boss'?3:2);
+  if(e.kind==='boss'&&G.endless){G.shake=10;G.hitstop=.15;SFX.win();banner('ボスをたおした!','#ffd23f');G.items.push({type:'chest',x:e.x,y:e.y,t:0});for(let i=0;i<20;i++)dropGem(e.x+(Math.random()-.5)*40,e.y+(Math.random()-.5)*40,5);return;}
   if(e.kind==='boss'){G.won=true;G.endT=2.2;G.shake=10;G.slow=.25;SFX.win();for(let i=0;i<20;i++)dropGem(e.x+(Math.random()-.5)*40,e.y+(Math.random()-.5)*40,5);return;}
   if(e.kind==='elite'){G.items.push({type:'chest',x:e.x,y:e.y,t:0});if(Math.random()<.5)G.items.push({type:'bag',x:e.x+10,y:e.y,t:0});return;}
   dropGem(e.x,e.y,e.k.xp+(G.T>=150?1:0));
@@ -613,7 +616,7 @@ function update(dt){
     if(e.lineVx){vx=e.lineVx;vy=0;if(Math.abs(e.x-p.x)>W)e.dead=true;}
     else if(e.ai&&e.ai.mode==='aim'){vx=0;vy=0;}
     else if(e.ai&&e.ai.mode==='dash'){const ds=e.kind==='husky'?190:240;vx=e.ai.dx*ds;vy=e.ai.dy*ds;e.face=e.ai.dx>0?1:-1;}
-    else{const dx=p.x-e.x,dy=p.y-e.y,l=Math.hypot(dx,dy)||1;const s=k.spd*(e.slowT>0?(e.kind==='boss'?.8:G.w.fart===6?.25:.6):1)*(G.won?0:1)*(e.kind==='boss'&&e.hp<e.max*.5?1.35:1);vx=dx/l*s;vy=dy/l*s;
+    else{const dx=p.x-e.x,dy=p.y-e.y,l=Math.hypot(dx,dy)||1;const s=k.spd*e.sm*(e.slowT>0?(e.kind==='boss'?.8:G.w.fart===6?.25:.6):1)*(G.won?0:1)*(e.kind==='boss'&&e.hp<e.max*.5?1.35:1);vx=dx/l*s;vy=dy/l*s;
       if(Math.abs(dx)>2)e.face=dx>0?1:-1;}
     e.x+=(vx+e.kx)*dt;e.y+=(vy+e.ky)*dt;const dmp=Math.exp(-dt*9);e.kx*=dmp;e.ky*=dmp;
     e.anim+=dt*(k.spd/6);
@@ -629,7 +632,7 @@ function update(dt){
     query(e.x,e.y,e.r*.8,(o,dx,dy)=>{if(o===e)return;const d=Math.hypot(dx,dy)||.01,ov=(e.r+o.r)*.8-d;if(ov>0){const push=ov*.25;o.x+=dx/d*push;o.y+=dy/d*push;}});}
   // contact damage
   if(!p.dead&&!G.won&&p.inv<=0){
-    let worst=0;query(p.x,p.y-4,4,(e)=>{worst=Math.max(worst,e.k.dmg);});
+    let worst=0;query(p.x,p.y-4,4,(e)=>{worst=Math.max(worst,Math.round(e.k.dmg*e.dm));});
     if(worst){p.hp-=worst;p.inv=.55;G.shake=Math.max(G.shake,3);SFX.hurt();G.hitstop=.05;buzz(25);
       for(let i=0;i<6;i++)addFx(p.x,p.y-4,(Math.random()-.5)*60,(Math.random()-.5)*60,.3,'#ff5e57',2);
       if(p.hp<=0){p.hp=0;p.dead=1;G.endT=1.6;SFX.lose();G.shake=8;}}
@@ -753,9 +756,9 @@ function hud(){
   ctx.fillStyle='rgba(255,255,255,.35)';ctx.fillRect(2,top+2,(cssW-4)*Math.min(1,G.xp/G.need),3);
   txt('Lv'+G.lv,8,top+26,18,'#fff4dc','left',3);
   // time
-  const t=Math.min(G.T,BOSS_T),mm=String((t/60)|0).padStart(2,'0'),ss=String((t%60)|0).padStart(2,'0');
+  const t=G.endless?G.T:Math.min(G.T,BOSS_T),mm=String((t/60)|0).padStart(2,'0'),ss=String((t%60)|0).padStart(2,'0');
   const bossOn=G.boss&&!G.boss.dead;
-  txt(bossOn?'BOSS':`${mm}:${ss}`,cssW/2,top+30,26,bossOn?'#ff7a7a':'#fff4dc','center',3);
+  txt(bossOn?'BOSS':`${G.endless?'∞ ':''}${mm}:${ss}`,cssW/2,top+30,26,bossOn?'#ff7a7a':'#fff4dc','center',3);
   txt(`たおした ${G.kills}`,cssW-56,top+26,14,'#fff4dc','right',2);
   // owned icons
   let ix=8;const iy=top+44;
@@ -801,7 +804,7 @@ function icon(ch,col,lv,x,y,ev){
 // ---------- flow ----------
 const $=id=>document.getElementById(id);
 function fmt(t){t=Math.floor(t);return `${(t/60)|0}分${String(t%60).padStart(2,'0')}秒`;}
-function showBest(){$('bestLine').textContent=best.time?`ベスト ${fmt(best.time)} ・ ${best.kills}匹 ・ ボス撃破 ${best.wins}回`:'';}
+function showBest(){$('bestLine').textContent=best.time?`ベスト ${fmt(best.time)} ・ ${best.kills}匹 ・ ボス撃破 ${best.wins}回`+(best.endless?` ・ エンドレス ${fmt(best.endless)}`:''):'';}
 showBest();
 function renderCoats(){
   const box=$('coats');box.innerHTML='';
@@ -823,9 +826,10 @@ function start(){
 function endGame(){
   if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;stick=null;
   const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
-  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win)best.wins++;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills;saveBest();
+  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win&&!G.endless)best.wins++;if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
   const fresh=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(best)&&!before.includes(k));
-  $('overTitle').textContent=win?'ボスをたおした!':'やられた…';
+  $('overTitle').textContent=G.endless?'さんぽ終了':win?'ボスをたおした!':'やられた…';
+  $('moreBtn').hidden=!(win&&!G.endless);
   $('overStats').innerHTML=`<span>生きのびた</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
   $('overBest').textContent=(fresh.length?fresh.map(k=>COATS[k].name).join('と')+'が仲間になった! ':'')+(rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`);
   renderCoats();
@@ -838,6 +842,8 @@ function openPause(){if(state!=='play')return;state='pause';stick=null;
   $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;$('pause').hidden=false;}
 $('startBtn').addEventListener('click',start);
 $('retryBtn').addEventListener('click',start);
+$('moreBtn').addEventListener('click',()=>{if(!G.won)return;G.endless=true;G.won=false;G.slow=1;G.endT=0;G.nextBoss=G.T+150;G.bossN=1;
+  $('over').hidden=true;$('pauseBtn').hidden=false;state='play';mOn=true;lastT=performance.now();banner('エンドレスさんぽ!','#ffd23f');});
 $('titleBtn').addEventListener('click',()=>{$('over').hidden=true;state='title';newGame();renderCoats();$('title').hidden=false;});
 $('pauseBtn').addEventListener('click',openPause);
 $('resumeBtn').addEventListener('click',()=>{$('pause').hidden=true;state='play';lastT=performance.now();});
