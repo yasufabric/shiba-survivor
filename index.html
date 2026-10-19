@@ -498,6 +498,7 @@ function spawner(dt){
   if(!G.boss||G.boss.dead){
     const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(15,.6+T*.045)*(T>=BOSS_T?.45:1)*(G.hard?1.25:1);
     G.spawnAcc+=rate*dt;
+    if(!G.endless&&T>20&&T<BOSS_T){const minN=Math.min(170,(T-20)*.65);if(G.en.length<minN)G.spawnAcc+=Math.min(6,(minN-G.en.length)*.15);}
     while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length>=(G.endless?340:280))break;
       const wc=1,wg=T<15?.2:1,wb=T<70?0:Math.min(.7,(T-70)/150),wh=T<95?0:Math.min(.35,(T-95)/200),wp=T<175?0:Math.min(.25,(T-175)/200);const r=Math.random()*(wc+wg+wb+wh+wp);
       const kind=G.rule==='chi'?'chi':r<wc?'chi':r<wc+wg?'corgi':r<wc+wg+wb?'bull':r<wc+wg+wb+wh?'husky':'pug';const [x,y]=edgePoint();spawn(kind,x,y);}
