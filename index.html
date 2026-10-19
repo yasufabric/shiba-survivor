@@ -63,6 +63,11 @@ p{margin:0;font-size:15px;line-height:1.6}
 .stamp.got{border-style:solid;border-color:var(--ink)}
 .stamp.got b{border-color:#d9443a;color:#d9443a}
 .newstamp{color:#d9443a}
+.evos{display:flex;flex-direction:column;gap:4px;width:100%;font-size:13px;text-align:left}
+.evos .cap{font-size:12px;opacity:.75}
+.evos .row{display:grid;grid-template-columns:22px auto 1fr;gap:6px;align-items:center}
+.evos .sq{width:22px;height:22px;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;box-sizing:border-box}
+.evos .ok{color:#2f8a3a}.evos .no{opacity:.7}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -125,6 +130,7 @@ p{margin:0;font-size:15px;line-height:1.6}
   <div class="panel">
     <h2>ひとやすみ</h2>
     <div class="stats" id="pauseStats"></div>
+    <div class="evos" id="pauseEvos"></div>
     <button class="btn" id="resumeBtn">つづける</button>
     <button class="btn sub" id="soundBtn">おと: ON</button>
     <button class="btn sub" id="shakeBtn">画面ゆれ: ON</button>
@@ -992,7 +998,11 @@ function endGame(){
   $('over').hidden=false;showBest();
 }
 function openPause(){if(state!=='play')return;state='pause';stick=null;
-  $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;$('pause').hidden=false;}
+  $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
+  const ks=Object.keys(G.w);$('pauseEvos').innerHTML=ks.length?'<div class="cap">進化の条件（技Lv5＋強化）</div>'+ks.map(k=>{const d=WEAP[k],l=G.w[k],ev=l===6,pas=PAS[d.evo.pas],has=pl(d.evo.pas)>0;
+    const note=ev?`<span class="ok">進化ずみ: ${d.evo.name}</span>`:`<span class="${l>=5&&has?'ok':'no'}">Lv${l}/5・${pas.name}${has?'○':'×'}</span>`;
+    return `<div class="row"><span class="sq" style="background:${ev?'#ffd23f':d.col}">${ev?d.evo.ch:d.ch}</span><span>${ev?'':d.name}</span>${note}</div>`;}).join(''):'';
+  $('pause').hidden=false;}
 $('startBtn').addEventListener('click',start);
 $('retryBtn').addEventListener('click',start);
 $('copyBtn').addEventListener('click',()=>{const t=G.shareText||'';const done=()=>{$('copyBtn').textContent='コピーしました';};
