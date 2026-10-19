@@ -79,7 +79,7 @@ p{margin:0;font-size:15px;line-height:1.6}
 .records{width:100%;font-size:13px;text-align:left;display:flex;flex-direction:column;gap:3px;font-variant-numeric:tabular-nums}
 .records .cap{font-size:12px;opacity:.75;margin-top:4px}
 .records .row{display:grid;grid-template-columns:18px 64px 1fr;gap:6px;border-bottom:1px dashed #c9bfae;padding-bottom:3px}
-.mode.snow[aria-checked="true"]{background:#e6f1ff}
+.mode.snow[aria-checked="true"]{background:#bfe0ff;box-shadow:0 3px 0 var(--ink),inset 0 0 0 3px #fff}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -1015,7 +1015,7 @@ function renderCoats(){
     b.addEventListener('click',()=>{diff=k;try{localStorage.setItem('shibasurv-diff',k);}catch(e){}renderCoats();});$('modes').appendChild(b);}
   const snowOpen=best.wins>=1;if(!snowOpen)map='meadow';
   $('maps').innerHTML='';
-  for(const [k,label] of [['meadow','草原'],['snow',snowOpen?'雪の公園':'雪の公園（ボスをたおすと）']]){const b=document.createElement('button');b.className='mode'+(k==='snow'?' snow':'');b.id='map-'+k;b.textContent=label;
+  for(const [k,label] of [['meadow','草原'],['snow',snowOpen?'雪の公園':'雪の公園（未解放）']]){const b=document.createElement('button');b.className='mode'+(k==='snow'?' snow':'');b.id='map-'+k;b.textContent=label;
     b.setAttribute('role','radio');b.setAttribute('aria-checked',String(map===k));if(k==='snow'&&!snowOpen)b.disabled=true;
     b.addEventListener('click',()=>{map=k;try{localStorage.setItem('shibasurv-map',k);}catch(e){}renderCoats();if(G&&state==='title')G.map=map;});$('maps').appendChild(b);}
   $('perk').textContent=COATS[coat].perk;drawTitleShiba();
