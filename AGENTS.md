@@ -6,4 +6,5 @@
 - World draws to a small offscreen canvas at an integer scale (≥2, internal width near 195); HUD text draws on the full-resolution canvas.
 - Tuning lives in `WEAP`, `PAS`, `KIND`, `spawner()` and `xpNeed()`. Weapon stat arrays have 6 entries: Lv1–5 plus the evolved form (index 5).
 - Run is 5 minutes (`BOSS_T`); the boss St. Bernard spawns then. Beating it wins.
+- CI runs `node tools/check.mjs` (script parses, evolution table is consistent) and `node tools/smoke.mjs` (plays three sped-up runs in headless Chromium and fails on any page error). Both must pass before merge.
 - Verify at 390×844 before merging. One theme per PR. Never force-push.

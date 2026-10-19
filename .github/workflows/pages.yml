@@ -20,6 +20,11 @@ jobs:
         with:
           node-version: 22
       - run: node tools/check.mjs
+      - name: Smoke-play the game in headless Chromium
+        run: |
+          npm i --no-save --no-package-lock playwright@1.47.2
+          npx playwright install --with-deps chromium
+          node tools/smoke.mjs
   deploy:
     if: github.event_name != 'pull_request'
     needs: check
