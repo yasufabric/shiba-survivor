@@ -207,9 +207,9 @@ function shibaSprites(pal,sesame){return [0,1].map(f=>makeSprite(17,16,a=>{
 },pal));}
 const COATS={
   aka:{name:'赤柴',spr:shibaSprites(P('#e0913f','#b5622a','#fff1d6')),start:'bone',perk:'ホネ投げで出発',lock:null},
-  kuro:{name:'黒柴',spr:shibaSprites(P('#4b3b36','#2a1e1a','#fff1d6',{5:'#0a0605'})),start:'bark',perk:'ワン!で出発・威力+15%',lock:{text:'3分生きのびる',ok:b=>b.time>=180}},
+  kuro:{name:'黒柴',spr:shibaSprites(P('#4b3b36','#2a1e1a','#fff1d6',{5:'#0a0605'})),start:'bark',startLv:2,perk:'ワン!Lv2で出発・威力+15%',lock:{text:'3分生きのびる',ok:b=>b.time>=180}},
   shiro:{name:'白柴',spr:shibaSprites(P('#fbf3e6','#d8c8b0','#ffffff')),start:'tail',perk:'しっぽボールで出発・HP自然回復',lock:{text:'合計1000匹たおす',ok:b=>(b.total||0)>=1000}},
-  goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',perk:'フリスビーで出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
+  goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',startLv:2,perk:'フリスビーLv2で出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
 };
 const OPT={shake:!matchMedia('(prefers-reduced-motion: reduce)').matches,buzz:true};try{Object.assign(OPT,JSON.parse(localStorage.getItem('shibasurv-opt')||'{}'));}catch(e){}
 let diff='normal';try{const d=localStorage.getItem('shibasurv-diff');if(d==='hard')diff=d;}catch(e){}
@@ -437,7 +437,7 @@ const STAMPS=[
 function newGame(){
   G={coat,hard:diff==='hard',T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
-    w:{[COATS[coat].start]:1},dmg:{},rerolls:2,pas:{},wt:{},tailA:0,
+    w:{[COATS[coat].start]:COATS[coat].startLv||1},dmg:{},rerolls:2,pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],pops:[],slashes:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
