@@ -50,6 +50,11 @@ p{margin:0;font-size:15px;line-height:1.6}
 .dmgbars .sq{width:22px;height:22px;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;box-sizing:border-box}
 .dmgbars .bar{height:10px;background:var(--tan);border:2px solid var(--ink);min-width:2px;box-sizing:border-box}
 .dmgbars .cap{font-size:12px;opacity:.75;text-align:left}
+.modes{display:flex;gap:8px}
+.mode{font-family:var(--font);font-size:15px;color:var(--ink);background:var(--paper);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);padding:5px 14px;cursor:pointer}
+.mode[aria-checked="true"]{background:var(--sun)}
+.mode.hard[aria-checked="true"]{background:#ff7a7a;color:var(--paper);text-shadow:1px 1px 0 var(--ink)}
+.mode:disabled{background:#c9bfae;cursor:default;opacity:.8}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -78,6 +83,7 @@ p{margin:0;font-size:15px;line-height:1.6}
   <p style="color:var(--paper);text-shadow:2px 2px 0 var(--ink)">指でなぞって動くだけ。攻撃は勝手に出る。<br>ホネを集めてレベルアップ、技を選んで強くなれ。</p>
   <div class="coats" id="coats" role="radiogroup" aria-label="柴をえらぶ"></div>
   <p class="perk" id="perk"></p>
+  <div class="modes" id="modes" role="radiogroup" aria-label="むずかしさ"></div>
   <button class="btn" id="startBtn">さんぽに出る</button>
   <p class="best" id="bestLine" style="color:var(--paper);text-shadow:1px 1px 0 var(--ink)"></p>
 </div>
@@ -168,6 +174,7 @@ const COATS={
   shiro:{name:'白柴',spr:shibaSprites(P('#fbf3e6','#d8c8b0','#ffffff')),start:'tail',perk:'しっぽボールで出発・HP自然回復',lock:{text:'合計1000匹たおす',ok:b=>(b.total||0)>=1000}},
   goma:{name:'胡麻柴',spr:shibaSprites(P('#d39554','#5a3a24','#fff1d6'),true),start:'fris',perk:'フリスビーで出発・足が速い',lock:{text:'ボスをたおす',ok:b=>b.wins>=1}}
 };
+let diff='normal';try{const d=localStorage.getItem('shibasurv-diff');if(d==='hard')diff=d;}catch(e){}
 let coat='aka';try{const c=localStorage.getItem('shibasurv-coat');if(c&&COATS[c])coat=c;}catch(e){}
 const SHIBA=COATS.aka.spr;
 const CHI=[0,1].map(f=>makeSprite(12,12,a=>{
@@ -345,7 +352,7 @@ try{const b=JSON.parse(localStorage.getItem('shibasurv-best')||'null');if(b&&typ
 function saveBest(){try{localStorage.setItem('shibasurv-best',JSON.stringify(best));}catch(e){}}
 const BOSS_T=300;
 function newGame(){
-  G={coat,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
+  G={coat,hard:diff==='hard',T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
     w:{[COATS[coat].start]:1},dmg:{},pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],pops:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
@@ -375,8 +382,8 @@ const KIND={
   boss:{spr:BOSS,hp:5200,spd:19,r:13,dmg:26,xp:0}
 };
 function spawn(kind,x,y,opt){
-  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=kind==='boss'?1:(1+G.T/95)*(1+Math.pow(ex,1.6)*.6);
-  const e={kind,k,r:k.r,dm:1+ex*.35,sm:1+Math.min(.6,ex*.1),x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
+  const k=KIND[kind],ex=G.endless?Math.max(0,G.T-BOSS_T)/60:0,sc=(kind==='boss'?1:(1+G.T/95)*(1+Math.pow(ex,1.6)*.6))*(G.hard?1.6:1);
+  const e={kind,k,r:k.r,dm:(1+ex*.35)*(G.hard?1.3:1),sm:1+Math.min(.6,ex*.1),x,y,hp:k.hp*sc,max:k.hp*sc,kx:0,ky:0,flash:0,dead:false,anim:Math.random()*2,slowT:0,hT:-9,hF:-9,face:1};
   if(opt)Object.assign(e,opt);G.en.push(e);return e;
 }
 function edgePoint(){
@@ -387,7 +394,7 @@ function spawner(dt){
   const T=G.T;
   if(G.endless&&T>=G.nextBoss&&(!G.boss||G.boss.dead)){G.nextBoss=T+150;G.bossN=(G.bossN||1)+1;banner(`ボス ${G.bossN}体目!`,'#ff7a7a');const [x,y]=edgePoint();G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv)*(1+.6*(G.bossN-1));SFX.boss();G.shake=6;}
   if(!G.boss||G.boss.dead){
-    const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(15,.6+T*.045)*(T>=BOSS_T?.45:1);
+    const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(15,.6+T*.045)*(T>=BOSS_T?.45:1)*(G.hard?1.25:1);
     G.spawnAcc+=rate*dt;
     while(G.spawnAcc>=1){G.spawnAcc-=1;if(G.en.length>=(G.endless?340:280))break;
       const wc=1,wg=T<15?.2:1,wb=T<70?0:Math.min(.7,(T-70)/150),wh=T<95?0:Math.min(.35,(T-95)/200);const r=Math.random()*(wc+wg+wb+wh);
@@ -405,7 +412,7 @@ function spawner(dt){
   ev(200,()=>{banner('ブルドッグの包囲!');ring('bull',14,140,3);});
   ev(235,()=>{banner('王冠ブルドッグが2匹!','#c6b6ff');for(let i=0;i<2;i++){const [x,y]=edgePoint();spawn('elite',x,y);}});
   ev(268,()=>{banner('最後の大群!');ring('chi',30,140,5);ring('corgi',18,165,4);});
-  ev(BOSS_T,()=>{banner('ボス セントバーナード!','#ff7a7a');const [x,y]=[G.p.x,G.p.y-H/2-30];G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv);SFX.boss();intense=1;G.shake=6;});
+  ev(BOSS_T,()=>{banner('ボス セントバーナード!','#ff7a7a');const [x,y]=[G.p.x,G.p.y-H/2-30];G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv)*(G.hard?1.5:1);SFX.boss();intense=1;G.shake=6;});
 }
 function bossAI(b,dt){
   const p=G.p,ai=b.ai||(b.ai={mode:'walk',t:2.5,n:0}),rage=b.hp<b.max*.5;
@@ -817,7 +824,7 @@ function icon(ch,col,lv,x,y,ev){
 // ---------- flow ----------
 const $=id=>document.getElementById(id);
 function fmt(t){t=Math.floor(t);return `${(t/60)|0}分${String(t%60).padStart(2,'0')}秒`;}
-function showBest(){$('bestLine').textContent=best.time?`ベスト ${fmt(best.time)} ・ ${best.kills}匹 ・ ボス撃破 ${best.wins}回`+(best.endless?` ・ エンドレス ${fmt(best.endless)}`:''):'';}
+function showBest(){$('bestLine').textContent=best.time?`ベスト ${fmt(best.time)} ・ ${best.kills}匹 ・ ボス撃破 ${best.wins}回`+(best.endless?` ・ エンドレス ${fmt(best.endless)}`:'')+(best.hardWins?` ・ はげしい撃破 ${best.hardWins}回`:''):'';}
 showBest();
 function renderCoats(){
   const box=$('coats');box.innerHTML='';
@@ -828,6 +835,11 @@ function renderCoats(){
     if(!open){const sm=document.createElement('small');sm.textContent=c.lock.text;b.appendChild(sm);b.disabled=true;}
     b.addEventListener('click',()=>{coat=k;try{localStorage.setItem('shibasurv-coat',k);}catch(e){}renderCoats();});box.appendChild(b);}
   if(COATS[coat].lock&&!COATS[coat].lock.ok(best))coat='aka';
+  const hardOpen=best.wins>=1;if(!hardOpen)diff='normal';
+  $('modes').innerHTML='';
+  for(const [k,label] of [['normal','ふつう'],['hard',hardOpen?'はげしい':'はげしい（ボスをたおすと）']]){const b=document.createElement('button');b.className='mode'+(k==='hard'?' hard':'');b.id='mode-'+k;b.textContent=label;
+    b.setAttribute('role','radio');b.setAttribute('aria-checked',String(diff===k));if(k==='hard'&&!hardOpen)b.disabled=true;
+    b.addEventListener('click',()=>{diff=k;try{localStorage.setItem('shibasurv-diff',k);}catch(e){}renderCoats();});$('modes').appendChild(b);}
   $('perk').textContent=COATS[coat].perk;drawTitleShiba();
 }
 renderCoats();
@@ -839,9 +851,9 @@ function start(){
 function endGame(){
   if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;stick=null;
   const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
-  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win&&!G.endless)best.wins++;if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
+  let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win&&!G.endless){best.wins++;if(G.hard)best.hardWins=(best.hardWins||0)+1;}if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
   const fresh=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(best)&&!before.includes(k));
-  $('overTitle').textContent=G.endless?'さんぽ終了':win?'ボスをたおした!':'やられた…';
+  $('overTitle').textContent=(G.hard?'【はげしい】':'')+(G.endless?'さんぽ終了':win?'ボスをたおした!':'やられた…');
   $('moreBtn').hidden=!(win&&!G.endless);
   $('overStats').innerHTML=`<span>生きのびた</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
   $('overBest').textContent=(fresh.length?fresh.map(k=>COATS[k].name).join('と')+'が仲間になった! ':'')+(rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`);
