@@ -24,7 +24,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--meadow);color:va
   padding:calc(env(safe-area-inset-top,0px) + 24px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(16px,env(safe-area-inset-left,0px));
   box-sizing:border-box;text-align:center}
 .dim{background:rgba(43,26,18,.55)}
-.panel{background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:18px 16px;width:min(340px,100%);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;align-items:center}
+.panel{max-height:100%;overflow-y:auto;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:18px 16px;width:min(340px,100%);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;align-items:center}
 h1{margin:0;font-size:44px;line-height:1;font-weight:400;color:var(--paper);text-shadow:3px 0 var(--ink),-3px 0 var(--ink),0 3px var(--ink),0 -3px var(--ink),3px 3px var(--ink),-3px 3px var(--ink),3px -3px var(--ink),-3px -3px var(--ink),0 7px var(--ink);letter-spacing:.04em;text-wrap:balance}
 h1 small{display:block;font-size:16px;margin-bottom:8px;color:var(--sun);text-shadow:2px 0 var(--ink),-2px 0 var(--ink),0 2px var(--ink),0 -2px var(--ink)}
 h2{margin:0;font-size:28px;font-weight:400}
@@ -47,7 +47,7 @@ p{margin:0;font-size:15px;line-height:1.6}
 .coat small{font-size:10px;line-height:1.2;min-height:24px}
 .perk{font-size:14px;color:var(--paper);text-shadow:1px 1px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink);min-height:1.4em}
 .dmgbars{display:flex;flex-direction:column;gap:5px;width:100%}
-.dmgbars .row{display:grid;grid-template-columns:22px 92px 1fr;gap:6px;align-items:center;font-size:13px;text-align:left}
+.dmgbars .row{display:grid;grid-template-columns:22px 112px 1fr;gap:6px;align-items:center;font-size:13px;text-align:left}
 .dmgbars .sq{width:22px;height:22px;border:2px solid var(--ink);display:grid;place-items:center;font-size:13px;box-sizing:border-box}
 .dmgbars .bar{height:10px;background:var(--tan);border:2px solid var(--ink);min-width:2px;box-sizing:border-box}
 .dmgbars .cap{font-size:12px;opacity:.75;text-align:left}
@@ -56,6 +56,12 @@ p{margin:0;font-size:15px;line-height:1.6}
 .mode[aria-checked="true"]{background:var(--sun)}
 .mode.hard[aria-checked="true"]{background:#ff7a7a;color:var(--paper);text-shadow:1px 1px 0 var(--ink)}
 .mode:disabled{background:#c9bfae;cursor:default;opacity:.8}
+.stamps{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%}
+.stamp{display:grid;grid-template-columns:36px 1fr;gap:8px;align-items:center;text-align:left;font-size:13px;line-height:1.35;border:2px dashed #b9a98f;padding:6px}
+.stamp b{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:400;font-size:15px;border:3px solid #c9bfae;color:#c9bfae;transform:rotate(-12deg)}
+.stamp.got{border-style:solid;border-color:var(--ink)}
+.stamp.got b{border-color:#d9443a;color:#d9443a}
+.newstamp{color:#d9443a}
 .lvtitle{font-size:30px;color:var(--sun);text-shadow:2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink)}
 .cards{display:flex;flex-direction:column;gap:12px;width:min(360px,100%)}
 .card{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 12px;font-family:var(--font);color:var(--ink);cursor:pointer;opacity:0;transform:translateY(16px);animation:cardin .22s forwards}
@@ -86,7 +92,16 @@ p{margin:0;font-size:15px;line-height:1.6}
   <p class="perk" id="perk"></p>
   <div class="modes" id="modes" role="radiogroup" aria-label="むずかしさ"></div>
   <button class="btn" id="startBtn">さんぽに出る</button>
+  <button class="btn sub" id="bookBtn">しば手帳</button>
   <p class="best" id="bestLine" style="color:var(--paper);text-shadow:1px 1px 0 var(--ink)"></p>
+</div>
+
+<div id="book" class="layer dim" hidden>
+  <div class="panel">
+    <h2>しば手帳</h2>
+    <div class="stamps" id="stamps"></div>
+    <button class="btn sub" id="bookClose">とじる</button>
+  </div>
 </div>
 
 <div id="level" class="layer dim" hidden>
@@ -359,6 +374,15 @@ let G=null, state='title', best={time:0,kills:0,wins:0};
 try{const b=JSON.parse(localStorage.getItem('shibasurv-best')||'null');if(b&&typeof b==='object')best=Object.assign(best,b);}catch(e){}
 function saveBest(){try{localStorage.setItem('shibasurv-best',JSON.stringify(best));}catch(e){}}
 const BOSS_T=300;
+const STAMPS=[
+  ['初','はじめての散歩','1回あそぶ',(b,g)=>true],
+  ['三','3分生きのびる','1回で3分',(b,g)=>g.T>=180],
+  ['勝','ボスをたおす','セントバーナードに勝つ',(b,g)=>g.won||g.endless],
+  ['進','進化3つ','1回で技を3つ進化',(b,g)=>Object.values(g.w).filter(v=>v===6).length>=3],
+  ['千','1500匹','1回で1500匹たおす',(b,g)=>g.kills>=1500],
+  ['柴','柴がそろう','4匹とも仲間にする',(b,g)=>Object.values(COATS).every(c=>!c.lock||c.lock.ok(b))],
+  ['激','はげしい勝利','はげしいでボスに勝つ',(b,g)=>g.hard&&(g.won||g.endless)],
+  ['夜','夜の散歩','エンドレスで10分まで',(b,g)=>g.endless&&g.T>=600]];
 function newGame(){
   G={coat,hard:diff==='hard',T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
@@ -879,11 +903,13 @@ function endGame(){
   if(state==='over')return;state='over';mOn=false;$('pauseBtn').hidden=true;stick=null;
   const win=G.won,t=Math.min(G.T,BOSS_T+999);const prevBest=Object.assign({},best);
   let rec=false;if(t>best.time){best.time=t;rec=true;}if(G.kills>best.kills){best.kills=G.kills;rec=true;}if(win&&!G.endless){best.wins++;if(G.hard)best.hardWins=(best.hardWins||0)+1;}if(G.endless&&G.T>(best.endless||0))best.endless=G.T;const before=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(prevBest));best.total=(best.total||0)+G.kills-(G.counted||0);G.counted=G.kills;saveBest();
+  best.st=best.st||{};const newSt=STAMPS.filter(([c,n,d,ok])=>!best.st[c]&&ok(best,G));for(const st of newSt)best.st[st[0]]=1;saveBest();
   const fresh=Object.keys(COATS).filter(k=>COATS[k].lock&&COATS[k].lock.ok(best)&&!before.includes(k));
   $('overTitle').textContent=(G.hard?'【はげしい】':'')+(G.endless?'さんぽ終了':win?'ボスをたおした!':'やられた…');
   $('moreBtn').hidden=!(win&&!G.endless);
   $('overStats').innerHTML=`<span>生きのびた</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;
   $('overBest').textContent=(fresh.length?fresh.map(k=>COATS[k].name).join('と')+'が仲間になった! ':'')+(rec?'自己ベスト更新!':`ベスト ${fmt(best.time)} ・ ${best.kills}匹`);
+  if(newSt.length)$('overBest').innerHTML+=`<br><span class="newstamp">手帳にはんこ: ${newSt.map(x=>x[1]).join('、')}</span>`;
   renderCoats();
   const tot=Object.values(G.dmg).reduce((a,b)=>a+b,0)||1,rows=Object.entries(G.dmg).sort((a,b)=>b[1]-a[1]);
   $('dmgBars').innerHTML=rows.length?'<div class="cap">技ごとのダメージ</div>'+rows.map(([k,v])=>{const d=WEAP[k],ev=G.w[k]===6;
@@ -894,6 +920,8 @@ function openPause(){if(state!=='play')return;state='pause';stick=null;
   $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;$('pause').hidden=false;}
 $('startBtn').addEventListener('click',start);
 $('retryBtn').addEventListener('click',start);
+$('bookBtn').addEventListener('click',()=>{const st=best.st||{};$('stamps').innerHTML=STAMPS.map(([c,n,d])=>`<div class="stamp${st[c]?' got':''}"><b>${c}</b><span>${n}<br><small>${d}</small></span></div>`).join('');$('book').hidden=false;});
+$('bookClose').addEventListener('click',()=>{$('book').hidden=true;});
 $('rerollBtn').addEventListener('click',()=>{if(state!=='level'||G.rerolls<=0)return;G.rerolls--;SFX.throw();showCards(performance.now());});
 $('moreBtn').addEventListener('click',()=>{if(!G.won)return;G.endless=true;G.won=false;G.slow=1;G.endT=0;G.nextBoss=G.T+150;G.bossN=1;
   $('over').hidden=true;$('pauseBtn').hidden=false;state='play';mOn=true;lastT=performance.now();banner('エンドレスさんぽ!','#ffd23f');});
