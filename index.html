@@ -729,6 +729,12 @@ function draw(){
     if(q.big)pxRing(q.x,q.y-6,10+k*50,'#ffd23f',.7);}
   // bark rings
   for(const r of G.rings){const k=r.t/.32;pxRing(r.x,r.y,r.R*(.3+.7*k),k<.5?'#ffffff':'#ffd23f',.8);}
+  // time of day: afternoon -> sunset before the boss -> night in endless
+  {const T=G.T;let c=null,a=0;
+    if(state!=='title'){if(G.endless){c='20,30,80';a=Math.min(.32,.18+(T-BOSS_T)/900);}
+      else if(T>150){c='255,120,40';a=Math.min(.2,(T-150)/150*.2);}}
+    if(a>0){px.fillStyle=`rgba(${c},${a})`;px.fillRect(0,0,W,H);}
+    if(G.endless){for(let i=0;i<14;i++){const sx=(hash(i,9)%W),sy=(hash(i,4)%H);if(((G.T*2+i)|0)%5){px.fillStyle='rgba(255,244,200,.55)';px.fillRect(sx,sy,1,1);}}}}
   // fx
   for(const f of G.fx){px.fillStyle=f.c;const s=f.s*(1-f.t/f.life*.5);px.fillRect(Math.round(f.x-camX),Math.round(f.y-camY),Math.max(1,Math.round(s)),Math.max(1,Math.round(s)));}
 
