@@ -1,7 +1,8 @@
 # しばサバイバー
 
 - Single file: `index.html` (HTML + CSS + JS). No build step, no runtime dependencies.
-- Pixel art is generated in code by `makeSprite` (auto outline). Do not add image or audio files, ripped art, or paid assets.
+- Pixel art is generated in code by `makeSprite` (auto outline). Do not add image or audio files, ripped art, or paid assets. The one exception is `icon-192.png` / `icon-512.png` for the home-screen app; they are rendered from the in-game sprite by `tools/make-icons.py` and must be regenerated, not hand-edited.
+- `manifest.webmanifest` and `sw.js` make the page installable and playable offline. The service worker registers only on github.io and is network-first. Bump `CACHE` in `sw.js` when the cached file list changes.
 - World draws to a small offscreen canvas at an integer scale (≥2, internal width near 195); HUD text draws on the full-resolution canvas.
 - Tuning lives in `WEAP`, `PAS`, `KIND`, `spawner()` and `xpNeed()`. Weapon stat arrays have 6 entries: Lv1–5 plus the evolved form (index 5).
 - Run is 5 minutes (`BOSS_T`); the boss St. Bernard spawns then. Beating it wins.
