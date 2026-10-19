@@ -669,7 +669,8 @@ function rollChoices(){
   return out;
 }
 function applyChoice(c){
-  if(c.kind==='w')G.w[c.k]=(G.w[c.k]||0)+1;
+  if(c.kind==='w'){G.w[c.k]=(G.w[c.k]||0)+1;if(G.w[c.k]===5){const v=WEAP[c.k].evo,ps=PAS[v.pas];
+    setTimeout(()=>{if(G&&state==='play')banner(pl(v.pas)?`${v.name}に進化できる!`:`「${ps.name}」を取ると${v.name}に進化!`,'#ffd23f');},700);}}
   else if(c.kind==='e'){G.w[c.k]=6;evolveFx(WEAP[c.k].evo.name);}
   else if(c.kind==='p'){G.pas[c.k]=(G.pas[c.k]||0)+1;if(c.k==='hp')G.p.hp=Math.min(maxHp(),G.p.hp+25);}
   else{G.p.hp=maxHp();}
