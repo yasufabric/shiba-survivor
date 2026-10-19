@@ -156,7 +156,7 @@ let lastFont='';
 let W=195,H=422,S=2,DPR=1,cssW=390,cssH=844,safeTop=0,safeBot=0;
 function resize(){
   cssW=innerWidth; cssH=innerHeight; DPR=Math.min(window.devicePixelRatio||1,2);
-  S=Math.max(2,Math.round(cssW/195)); W=Math.ceil(cssW/S); H=Math.ceil(cssH/S);
+  S=Math.max(2,Math.round(Math.sqrt(cssW*cssH/(195*422)))); W=Math.ceil(cssW/S); H=Math.ceil(cssH/S);
   pix.width=W; pix.height=H; pix.style.width=W*S+'px'; pix.style.height=H*S+'px'; cv.width=Math.round(cssW*DPR); cv.height=Math.round(cssH*DPR);
   px.imageSmoothingEnabled=false; ctx.imageSmoothingEnabled=false; lastFont='';
   const cs=getComputedStyle(document.getElementById('probe'));
