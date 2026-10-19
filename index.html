@@ -140,6 +140,7 @@ p{margin:0;font-size:15px;line-height:1.6}
     <div class="dmgbars" id="dmgBars"></div>
     <p class="best" id="overBest"></p>
     <button class="btn" id="moreBtn" hidden>まだ散歩する</button>
+    <button class="btn sub" id="copyBtn">結果をコピー</button>
     <button class="btn" id="retryBtn">もう一回</button>
     <button class="btn sub" id="titleBtn">柴をえらびなおす</button>
   </div>
@@ -946,12 +947,19 @@ function endGame(){
   const tot=Object.values(G.dmg).reduce((a,b)=>a+b,0)||1,rows=Object.entries(G.dmg).sort((a,b)=>b[1]-a[1]);
   $('dmgBars').innerHTML=rows.length?'<div class="cap">技ごとのダメージ</div>'+rows.map(([k,v])=>{const d=WEAP[k],ev=G.w[k]===6;
     return `<div class="row"><span class="sq" style="background:${ev?'#ffd23f':d.col}">${ev?d.evo.ch:d.ch}</span><span>${ev?d.evo.name:d.name}</span><span class="bar" style="width:${Math.max(2,Math.round(v/rows[0][1]*100))}%"></span></div>`;}).join(''):'';
+  const top=rows[0]?(G.w[rows[0][0]]===6?WEAP[rows[0][0]].evo.name:WEAP[rows[0][0]].name):'';
+  G.shareText=`しばサバイバー${G.hard?'【はげしい】':''}\n${COATS[G.coat].name}で${fmt(G.T)}生きのびた${win||G.endless?'（ボス撃破）':''}\nLv${G.lv}・${G.kills}匹${top?'・主力: '+top:''}\nhttps://yasufabric.github.io/shiba-survivor/`;
+  $('copyBtn').textContent='結果をコピー';
   $('over').hidden=false;showBest();
 }
 function openPause(){if(state!=='play')return;state='pause';stick=null;
   $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;$('pause').hidden=false;}
 $('startBtn').addEventListener('click',start);
 $('retryBtn').addEventListener('click',start);
+$('copyBtn').addEventListener('click',()=>{const t=G.shareText||'';const done=()=>{$('copyBtn').textContent='コピーしました';};
+  try{navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done));}catch(e){fallbackCopy(t,done);}});
+function fallbackCopy(t,done){const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();if(ok)done();else $('copyBtn').textContent='コピーできませんでした';}
 $('bookBtn').addEventListener('click',()=>{const st=best.st||{};$('stamps').innerHTML=STAMPS.map(([c,n,d])=>`<div class="stamp${st[c]?' got':''}"><b>${c}</b><span>${n}<br><small>${d}</small></span></div>`).join('');$('book').hidden=false;});
 $('bookClose').addEventListener('click',()=>{$('book').hidden=true;});
 $('rerollBtn').addEventListener('click',()=>{if(state!=='level'||G.rerolls<=0)return;G.rerolls--;SFX.throw();showCards(performance.now());});
