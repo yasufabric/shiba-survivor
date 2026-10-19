@@ -30,6 +30,7 @@ h1 small{display:block;font-size:16px;margin-bottom:8px;color:var(--sun);text-sh
 h2{margin:0;font-size:28px;font-weight:400}
 p{margin:0;font-size:15px;line-height:1.6}
 .btn{font-family:var(--font);font-size:22px;color:var(--ink);background:var(--tan);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);padding:10px 28px;cursor:pointer;min-width:180px}
+.btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:0 5px 0 var(--ink)}
 .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 .btn.sub{background:var(--paper);font-size:17px;padding:8px 20px;min-width:150px}
 .btn:focus-visible,.card:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
@@ -91,6 +92,7 @@ p{margin:0;font-size:15px;line-height:1.6}
 <div id="level" class="layer dim" hidden>
   <div class="lvtitle">レベルアップ!</div>
   <div class="cards" id="cards"></div>
+  <button class="btn sub" id="rerollBtn">ひきなおす（のこり2）</button>
 </div>
 
 <div id="pause" class="layer dim" hidden>
@@ -360,7 +362,7 @@ const BOSS_T=300;
 function newGame(){
   G={coat,hard:diff==='hard',T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
-    w:{[COATS[coat].start]:1},dmg:{},pas:{},wt:{},tailA:0,
+    w:{[COATS[coat].start]:1},dmg:{},rerolls:2,pas:{},wt:{},tailA:0,
     en:[],proj:[],hz:[],pops:[],slashes:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
@@ -571,7 +573,12 @@ function cardInfo(c){
 const levelEl=document.getElementById('level'),cardsEl=document.getElementById('cards');
 function openLevel(){
   state='level';SFX.level();G.pendingLv--;stick=null;const openedAt=performance.now();
+  showCards(openedAt);
+  levelEl.hidden=false;
+}
+function showCards(openedAt){
   const ch=rollChoices();cardsEl.innerHTML='';
+  $('rerollBtn').textContent=`ひきなおす（のこり${G.rerolls}）`;$('rerollBtn').disabled=G.rerolls<=0;
   ch.forEach((c,i)=>{const info=cardInfo(c);const b=document.createElement('button');b.className='card'+(info.evo?' evocard':'');b.id='card'+i;
     b.innerHTML=`<span class="ic" style="background:${info.col}">${info.ch}</span><span><span class="cname">${info.name}${info.evo?'<i class="evo">進化!</i>':info.isNew?'<i>NEW</i>':info.lv?`<em>Lv${info.lv}</em>`:''}</span><span class="cdesc">${info.desc}</span></span>`;
     b.addEventListener('click',()=>{if(state!=='level'||performance.now()-openedAt<400)return;applyChoice(c);SFX.pick();levelEl.hidden=true;state='play';powerBurst();lastT=performance.now();
@@ -887,6 +894,7 @@ function openPause(){if(state!=='play')return;state='pause';stick=null;
   $('pauseStats').innerHTML=`<span>時間</span><b>${fmt(G.T)}</b><span>レベル</span><b>${G.lv}</b><span>たおした犬</span><b>${G.kills}匹</b>`;$('pause').hidden=false;}
 $('startBtn').addEventListener('click',start);
 $('retryBtn').addEventListener('click',start);
+$('rerollBtn').addEventListener('click',()=>{if(state!=='level'||G.rerolls<=0)return;G.rerolls--;SFX.throw();showCards(performance.now());});
 $('moreBtn').addEventListener('click',()=>{if(!G.won)return;G.endless=true;G.won=false;G.slow=1;G.endT=0;G.nextBoss=G.T+150;G.bossN=1;
   $('over').hidden=true;$('pauseBtn').hidden=false;state='play';mOn=true;lastT=performance.now();banner('エンドレスさんぽ!','#ffd23f');});
 $('titleBtn').addEventListener('click',()=>{$('over').hidden=true;state='title';newGame();renderCoats();$('title').hidden=false;});
