@@ -322,6 +322,7 @@ const PINE=makeSprite(20,32,a=>{
 const SROCK=makeSprite(14,9,a=>{a.ell(7,5,7,4.4,2);a.ell(6,2.6,5,1.8,4);a.rect(3,7,9,1,3);},P('#9aa7b6','#6c7786','#ffffff'));
 const ROCK=makeSprite(14,9,a=>{a.ell(7,5,7,4.4,2);a.ell(5,3.6,3.2,2,4);a.rect(3,7,9,1,3);},P('#a6a39c','#76736d','#cfccc4'));
 const BELL=makeSprite(9,10,a=>{a.ell(4.5,5.5,4.4,4.2,2);a.rect(0,7,9,2,2);a.ell(3,4,1.4,1.6,4);a.rect(3,9,3,1,3);a.rect(4,0,1,2,3);a.dot(4,8,3);},P('#ffd23f','#b8862a','#fff3b0'));
+const TOY=makeSprite(9,10,a=>{a.ell(4.5,6.5,3.6,3.4,2);a.ell(4.5,3,2.8,2.6,2);a.ell(2,1,1.1,1.1,2);a.ell(7,1,1.1,1.1,2);a.dot(3,3,5);a.dot(6,3,5);a.dot(4,4,3);a.dot(5,4,3);a.ell(4.5,7,1.6,1.4,4);},P('#ffb3d1','#d9708f','#fff0f6'));
 const SPOT=makeSprite(6,6,a=>{a.ell(3,3,3.1,3.1,5);a.dot(2,2,2);},P('#4a4a4a'));
 const BARREL=makeSprite(8,8,a=>{a.ell(4,4,4.1,4.1,2);a.rect(0,2,8,1,3);a.rect(0,5,8,1,3);a.dot(2,1,4);},P('#f2b134','#8a5a22','#ffe08a'));
 const BAG=makeSprite(8,9,a=>{a.ell(4,5.5,4,3.5,2);a.rect(3,0,2,3,3);a.dot(2,1,3);a.dot(5,1,3);a.dot(3,5,4);a.dot(5,6,4);},P('#7b6cf0','#4f40b8','#d6d0ff'));
@@ -448,7 +449,10 @@ const WEAP={
     evo:{pas:'magnet',name:'フリスビー乱舞',ch:'舞',d:'6枚を全方向に投げて戻す'}},
   lead:{name:'リードぶんぶん',ch:'紐',col:'#e2574c',d:['近い犬のいる側へリードを振りまわす','威力アップ','左右両方に振る','長くなる','威力・速さアップ'],
     cd:[1.35,1.25,1.15,1.05,.95,.85],n:[1,1,2,2,2,1],dmg:[16,21,24,30,38,46],len:[38,42,46,54,60,72],
-    evo:{pas:'armor',name:'リード大旋風',ch:'嵐',d:'ぐるりと一回転して周りをまとめてはたく'}}
+    evo:{pas:'armor',name:'リード大旋風',ch:'嵐',d:'ぐるりと一回転して周りをまとめてはたく'}},
+  toy:{name:'ぬいぐるみ',ch:'玩',col:'#ffb3d1',d:['犬を引きつけるぬいぐるみを置く。時間がたつと破裂','破裂が強くなる','長く引きつける','2つ置く','広く引きつけて大破裂'],
+    cd:[5.5,5.2,5,4.6,4.2,3.6],n:[1,1,1,2,2,3],dmg:[30,45,55,60,80,110],R:[50,55,60,64,80,95],life:[2.5,2.6,3.2,3.2,3.6,3.6],
+    evo:{pas:'luck',name:'ぬいぐるみ大会',ch:'宴',d:'3つ置いて、広く引きつけて大破裂'}}
 };
 const PAS={
   speed:{name:'はやあし',ch:'足',col:'#7fd0ff',d:'移動速度 +10%'},
@@ -457,7 +461,8 @@ const PAS={
   magnet:{name:'はなが利く',ch:'鼻',col:'#c6b6ff',d:'ホネを拾う範囲 +30%'},
   power:{name:'きんトレ',ch:'筋',col:'#ff9a7a',d:'全攻撃の威力 +12%'},
   haste:{name:'はやぐい',ch:'速',col:'#ffe26b',d:'全攻撃の間隔 -8%'},
-  armor:{name:'くびわ',ch:'輪',col:'#9ad0a8',d:'うけるダメージ -1'}
+  armor:{name:'くびわ',ch:'輪',col:'#9ad0a8',d:'うけるダメージ -1'},
+  luck:{name:'ラッキー',ch:'運',col:'#ffe9a8',d:'会心（2倍ダメージ）の確率 +6%'}
 };
 
 // ---------- game state ----------
@@ -478,7 +483,7 @@ function newGame(){
   G={coat,map,hard:diff==='hard',rule:diff==='daily'?TODAY.id:null,T:0,p:{x:0,y:0,hp:100,face:1,ang:0,inv:0,moving:false,anim:0,dead:0},
     lv:1,xp:0,need:xpNeed(1),pendingLv:0,kills:0,
     w:{[COATS[coat].start]:COATS[coat].startLv||1},dmg:{},rerolls:diff==='daily'&&TODAY.id==='evo'?5:2,pas:{},wt:{},tailA:0,
-    en:[],proj:[],hz:[],pops:[],slashes:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
+    en:[],proj:[],hz:[],pops:[],slashes:[],toys:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
 function xpNeed(l){if(l<=3)return [0,3,5,8][l];return Math.floor(4+l*2.6+(l>15?(l-15)*3:0));}
@@ -567,7 +572,7 @@ function banner(t,c){G.banner={t,c:c||'#ffd23f',life:2.4};}
 
 function hurtEnemy(e,dmg,nx,ny,kb,src){
   if(e.dead)return;
-  let d=dmg*pow()*(.9+Math.random()*.2);const crit=Math.random()<.08;if(crit)d*=2;
+  let d=dmg*pow()*(.9+Math.random()*.2);const crit=Math.random()<.08+.06*pl('luck');if(crit)d*=2;
   d=Math.max(1,Math.round(d));if(src)G.dmg[src]=(G.dmg[src]||0)+Math.min(d,Math.max(0,e.hp));e.hp-=d;e.flash=.09;
   if(kb&&e.kind!=='boss'){const l=Math.hypot(nx,ny)||1;const m=(e.kind==='elite'?.3:e.kind==='bull'?.6:1)*(G.map==='snow'?1.6:1);e.kx+=nx/l*kb*m;e.ky+=ny/l*kb*m;}
   if(G.nums.length<45)G.nums.push({x:e.x+(Math.random()*6-3),y:e.y-e.r-4,v:d,t:0,crit});
@@ -633,6 +638,11 @@ function weapons(dt){
       for(let i=0;i<def.n[L];i++){let x,y;if(cand.length){const e=cand[(Math.random()*cand.length)|0];x=e.x;y=e.y;}else{x=p.x+(Math.random()-.5)*W*.7;y=p.y+(Math.random()-.5)*H*.5;}
         G.paws.push({x,y,t:-i*.12,fall:.38,R:def.R[L],dmg:def.dmg[L]});}
     }
+    if(k==='toy'&&G.wt[k]<=0){
+      G.wt[k]=def.cd[L]*cm;SFX.throw();
+      for(let i=0;i<def.n[L];i++){const a=Math.PI+p.ang+(i-(def.n[L]-1)/2)*1.1,r=28+Math.random()*10;
+        const it={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r,t:0,life:def.life[L],R:def.R[L],dmg:def.dmg[L]};pushOut(it,8);G.toys.push(it);}
+    }
     if(k==='lead'&&G.wt[k]<=0){
       G.wt[k]=def.cd[L]*cm;SFX.throw();const len=def.len[L];
       if(L===5){G.slashes.push({x:p.x,y:p.y-4,dir:0,len,t:0,ring:true});query(p.x,p.y-4,len,(e,dx,dy)=>hurtEnemy(e,def.dmg[L],dx,dy,90,'lead'));}
@@ -668,6 +678,10 @@ function updateProj(dt){
   }
   G.paws=G.paws.filter(w=>w.t<w.fall+.45);
   for(const r of G.rings)r.t+=dt;G.rings=G.rings.filter(r=>r.t<.32);
+  for(const y of G.toys){y.t+=dt;if(!y.done&&y.t>=y.life){y.done=true;SFX.thump();G.shake=Math.max(G.shake,2);G.rings.push({x:y.x,y:y.y-4,R:y.R*.8,t:0});
+      for(let i=0;i<12;i++){const a=i/12*Math.PI*2;addFx(y.x,y.y-4,Math.cos(a)*80,Math.sin(a)*60,.35,i%2?'#ffb3d1':'#fff4dc',2);}
+      query(y.x,y.y,y.R*.8,(e,dx,dy)=>hurtEnemy(e,y.dmg,dx,dy,140,'toy'));}}
+  G.toys=G.toys.filter(y=>!y.done);
   for(const q of G.slashes)q.t+=dt;G.slashes=G.slashes.filter(q=>q.t<.2);
   for(const q of G.pops)q.t+=dt;G.pops=G.pops.filter(q=>q.t<(q.big?.5:.18));
 }
@@ -784,7 +798,8 @@ function update(dt){
     if(e.lineVx){vx=e.lineVx;vy=0;if(Math.abs(e.x-p.x)>W)e.dead=true;}
     else if(e.ai&&e.ai.mode==='aim'){vx=0;vy=0;}
     else if(e.ai&&e.ai.mode==='dash'){const ds=e.kind==='husky'?190:240;vx=e.ai.dx*ds;vy=e.ai.dy*ds;e.face=e.ai.dx>0?1:-1;}
-    else{const dx=p.x-e.x,dy=p.y-e.y,l=Math.hypot(dx,dy)||1;const s=k.spd*e.sm*(e.slowT>0?(e.kind==='boss'?.8:G.w.fart===6?.25:.6):1)*(G.won?0:1)*(e.kind==='boss'&&e.hp<e.max*.5?1.35:1)*(e.kind==='pug'&&((e.ai&&e.ai.hold>0)||l<60)?0:1);vx=dx/l*s;vy=dy/l*s;
+    else{let tx=p.x,ty=p.y;if(G.toys.length&&e.kind!=='boss'&&e.kind!=='dal'){for(const y of G.toys){if(Math.abs(e.x-y.x)<y.R&&Math.abs(e.y-y.y)<y.R){tx=y.x;ty=y.y;break;}}}
+      const dx=tx-e.x,dy=ty-e.y,l=Math.hypot(dx,dy)||1;const s=k.spd*e.sm*(e.slowT>0?(e.kind==='boss'?.8:G.w.fart===6?.25:.6):1)*(G.won?0:1)*(e.kind==='boss'&&e.hp<e.max*.5?1.35:1)*(e.kind==='pug'&&((e.ai&&e.ai.hold>0)||l<60)?0:1);vx=dx/l*s;vy=dy/l*s;
       if(Math.abs(dx)>2)e.face=dx>0?1:-1;}
     e.x+=(vx+e.kx)*dt;e.y+=(vy+e.ky)*dt;const dmp=Math.exp(-dt*(G.map==='snow'?5:9));e.kx*=dmp;e.ky*=dmp;
     e.anim+=dt*(k.spd/6);
@@ -900,6 +915,10 @@ function draw(){
   for(const q of G.pops){const life=q.big?.5:.18,k=q.t/life,sw=1+k*.6,sh=1-k*.7,img=q.f<0?q.s.fl:q.s.fr;
     px.globalAlpha=1-k;px.drawImage(img,Math.round(q.x-camX-q.s.w*sw/2),Math.round(q.y-camY-q.s.h*sh),Math.round(q.s.w*sw),Math.max(1,Math.round(q.s.h*sh)));px.globalAlpha=1;
     if(q.big)pxRing(q.x,q.y-6,10+k*50,'#ffd23f',.7);}
+  // squeaky toys: a pink bear that wobbles, then pops
+  for(const y of G.toys){const k=y.t/y.life,w=Math.round(Math.sin(y.t*(10+k*20))*1.5),x=Math.round(y.x-camX),yy=Math.round(y.y-camY);
+    if(((G.T*4)|0)%2)pxRing(y.x,y.y,y.R*.55,'rgba(255,179,209,.6)',.6);
+    shadow(y.x,y.y,8);px.drawImage(TOY.r,x-TOY.w/2+w,yy-TOY.h+1);}
   // leash swings
   for(const q of G.slashes){if(q.t<0)continue;const k=q.t/.2;px.globalAlpha=1-k;
     if(q.ring){pxRing(q.x,q.y,q.len*(.5+k*.5),'#e2574c',.8);pxRing(q.x,q.y,q.len*(.45+k*.5),'#ffb3a6',.8);}
