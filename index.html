@@ -541,7 +541,7 @@ function edgePoint(){
 }
 function spawner(dt){
   const T=G.T;
-  if(G.endless&&T>=G.nextBoss&&(!G.boss||G.boss.dead)){G.nextBoss=T+150;G.bossN=(G.bossN||1)+1;banner(`ボス ${G.bossN}体目! ${G.bossN%2===0?'ダルメシアン':'セントバーナード'}`,'#ff7a7a');const [x,y]=edgePoint();G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv)*(1+.6*(G.bossN-1))*(G.hard?1.5:1);if(G.bossN%2===0){G.boss.k=KIND.dal;G.boss.dal=true;G.boss.r=12;}SFX.boss();G.shake=6;}
+  if(G.endless&&T>=G.nextBoss&&(!G.boss||G.boss.dead)){G.nextBoss=T+150;G.bossN=(G.bossN||1)+1;banner(`ボス ${G.bossN}体目! ${G.bossN%2===0?'ダルメシアン':'セントバーナード'}`,'#ff7a7a');const [x,y]=edgePoint();G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(18000,3000+230*G.lv)*(1+.6*(G.bossN-1))*(G.hard?1.5:1);if(G.bossN%2===0){G.boss.k=KIND.dal;G.boss.dal=true;G.boss.r=12;}SFX.boss();G.shake=6;}
   if(!G.boss||G.boss.dead){
     const rate=G.endless?Math.min(17,13+(T-BOSS_T)*.01):Math.min(15,.6+T*.045)*(T>=BOSS_T?.45:1)*(G.hard?1.25:1);
     G.spawnAcc+=rate*dt;
@@ -564,7 +564,7 @@ function spawner(dt){
   ev(250,()=>{banner('王冠ハスキー! 突進に注意','#9fdcff');const [x,y]=edgePoint();spawn('khusky',x,y);});
   ev(235,()=>{banner('王冠ブルドッグが2匹!','#c6b6ff');for(let i=0;i<2;i++){const [x,y]=edgePoint();spawn('elite',x,y);}});
   ev(268,()=>{banner('最後の大群!');ring('chi',30,140,5);ring('corgi',18,165,4);});
-  ev(BOSS_T,()=>{banner('ボス セントバーナード!','#ff7a7a');const [x,y]=[G.p.x,G.p.y-H/2-30];G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(9000,3000+150*G.lv)*(G.hard?1.5:1);SFX.boss();intense=1;G.shake=6;});
+  ev(BOSS_T,()=>{banner('ボス セントバーナード!','#ff7a7a');const [x,y]=[G.p.x,G.p.y-H/2-30];G.boss=spawn('boss',x,y);G.boss.hp=G.boss.max=Math.min(18000,3000+230*G.lv)*(G.hard?1.5:1);SFX.boss();intense=1;G.shake=6;});
 }
 function bossAI(b,dt){
   const p=G.p,ai=b.ai||(b.ai={mode:'walk',t:2.5,n:0}),rage=b.hp<b.max*.5;
