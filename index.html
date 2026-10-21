@@ -504,7 +504,7 @@ function newGame(){
     en:[],proj:[],hz:[],pops:[],slashes:[],toys:[],gems:[],items:[],fx:[],nums:[],paws:[],rings:[],
     spawnAcc:0,events:new Set(),banner:null,shake:0,hitstop:0,boss:null,won:false,endT:0,slow:1};
 }
-function xpNeed(l){if(l<=3)return [0,3,5,8][l];return Math.floor(4+l*2.6+(l>15?(l-15)*3:0));}
+function xpNeed(l){if(l<=3)return [0,3,5,8][l];return Math.floor(4+l*2.6+(l>15?(l-15)*3:0)+(l>25?(l-25)*(l-25)*.35:0));}
 const pl=k=>G.pas[k]||0;
 const cdMul=()=>Math.pow(.92,pl('haste'));
 const pow=()=>(1+.12*pl('power'))*(G.coat==='kuro'?1.15:1)*(G.rule==='glass'?1.6:1);
