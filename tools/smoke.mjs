@@ -27,14 +27,14 @@ for (const [label, setup] of [
     for (; steps < 9000; steps++) {
       if (t.state === 'level') { const c = document.querySelector('.card'); G.pendingLv = Math.max(0, G.pendingLv); c && c.dispatchEvent(new Event('click')); if (t.state === 'level') { document.getElementById('level').hidden = true; } }
       if (t.state === 'over') { const more = document.getElementById('moreBtn'); if (!more.hidden) { more.click(); continue; } break; }
-      G.p.hp = Math.max(G.p.hp, 60);
+      G.p.hp = 999; // big enough that one frame of boss + barrel hits cannot end the run early
       const a = G.T * .7; G.p.x += Math.cos(a) * 1.8; G.p.y += Math.sin(a) * 1.8;
       t.update(1 / 30);
     }
     return { T: Math.round(G.T), lv: G.lv, kills: G.kills, enemies: G.en.length, state: t.state, steps };
   }, setup);
   console.log(label, JSON.stringify(r));
-  if (r.kills < 50) { console.error(`::error::${label}: too few kills (${r.kills}), weapons may be broken`); failed = true; }
+  if (r.kills < 50) { console.error(`::error::${label}: too few kills (${r.kills} in ${r.steps} steps, state ${r.state}), weapons may be broken`); failed = true; }
   await page.close();
 }
 await browser.close();
