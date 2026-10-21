@@ -34,10 +34,10 @@ for (const [label, setup] of [
     return { T: Math.round(G.T), lv: G.lv, kills: G.kills, enemies: G.en.length, state: t.state, steps };
   }, setup);
   console.log(label, JSON.stringify(r));
-  if (r.kills < 50) { console.error(`${label}: too few kills, weapons may be broken`); failed = true; }
+  if (r.kills < 50) { console.error(`::error::${label}: too few kills (${r.kills}), weapons may be broken`); failed = true; }
   await page.close();
 }
 await browser.close();
-if (errors.length) { console.error('page errors:\n' + errors.join('\n')); process.exit(1); }
+if (errors.length) { for (const e of errors) console.error('::error::' + e.replace(/\n/g, ' ')); process.exit(1); }
 if (failed) process.exit(1);
 console.log('ok: smoke runs finished without page errors');
